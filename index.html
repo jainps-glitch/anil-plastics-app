@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Anil Plastics">
-<title>Anil Plastics - Order &amp; Tasks (Ver 09.1)</title>
+<title>Anil Plastics - Order &amp; Tasks (Ver 10.0)</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -366,6 +366,24 @@
   }
   .adv-mini-inp:focus { border-color: var(--brand-green); outline: none; }
 
+  /* 5-Step Visual Order Workflow Stepper (Mobile Owner Live) */
+  .wf-stepper {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
+    margin: 8px 0 4px; padding: 6px; background: #f4faf7; border-radius: 9px; border: 1px solid #d5e7dd;
+  }
+  .wf-step {
+    text-align: center; font-size: 10.5px; font-weight: 800; padding: 4px 2px;
+    border-radius: 6px; background: #e2e8f0; color: #64748b; line-height: 1.2;
+  }
+  .wf-step.done { background: #dcfce7; color: #166534; }
+  .wf-step.curr { background: #134e34; color: #ffeb3b; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+
+  .company-scope-banner {
+    display: none; background: #ecfdf5; border-bottom: 1.5px solid #6ee7b7;
+    color: #065f46; padding: 8px 14px; font-size: 13px; font-weight: 800;
+  }
+  .company-scope-banner.show { display: block; }
+
   .hidden-input { display: none; }
 </style>
 </head>
@@ -391,7 +409,7 @@
 <div class="app-top">
   <div class="brand-header">
     <div class="brand-title-row">
-      <div class="brand-wordmark">ANIL PLASTICS <span class="brand-badge">Ver 09.1</span></div>
+      <div class="brand-wordmark">ANIL PLASTICS <span class="brand-badge">Ver 10.0</span></div>
       <button class="btn-upload-header" id="btnTopSyncStock">🔄 Stock</button>
     </div>
     <div class="salesman-bar">
@@ -441,6 +459,9 @@
     </div>
   </div>
 
+  <div style="background:#fff;padding:10px 12px 0">
+    <div id="ownerPipelineBar" style="display:flex;height:10px;border-radius:999px;overflow:hidden;background:#e2ede6;gap:2px"></div>
+  </div>
   <div class="stage-strip" id="ownerStageStrip"></div>
 
   <div class="owner-subtabs" id="ownerSubtabs">
@@ -519,6 +540,7 @@
 </section>
 
 <section id="tabOrder" class="tab-content active">
+  <div id="companyScopeBanner" class="company-scope-banner"></div>
   <div id="editingBanner" class="editing-banner">
     <span id="editingBannerText">Editing saved order</span>
     <button id="btnCancelEdit">Cancel Edit</button>
@@ -745,9 +767,12 @@
       <button class="chip" data-filter="modified">⚠️ Differences (<span id="auditDiffCount">0</span>)</button>
     </div>
   </div>
-  <div class="result-meta" style="display:flex;justify-content:space-between;align-items:center">
+  <div class="result-meta" style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap">
     <span id="auditResultMeta"></span>
-    <button class="btn-sm btn-green" id="btnExportAudit">📥 Export Diff</button>
+    <div style="display:flex;gap:6px">
+      <button class="btn-sm btn-blue" id="btnUploadAuditCloud" style="min-height:36px;padding:6px 10px;font-size:12.5px">☁️ Upload to Dashboard</button>
+      <button class="btn-sm btn-green" id="btnExportAudit" style="min-height:36px;padding:6px 10px;font-size:12.5px">📥 Export Excel</button>
+    </div>
   </div>
   <ul id="auditItemList" class="item-list"></ul>
 </section>
@@ -798,7 +823,7 @@
       <button class="btn-sm btn-danger-soft btn-wide" id="btnReset">🗑️ Clear All Phone Data</button>
     </div>
   </div>
-  <div class="app-footer">Anil Plastics Workflow System · Ver 09.1 PWA</div>
+  <div class="app-footer">Anil Plastics Workflow System · Ver 10.0 PWA</div>
 </section>
 
 <input type="file" id="fileInput" class="hidden-input" accept=".xlsx,.xls,.csv">
@@ -899,7 +924,7 @@
 
 <script>
 /**
- * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v09.1
+ * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v10.0
  * Guarantees instant, non-hanging startup on Android Chrome, WebViews, file://, content://, and HTTPS.
  */
 window.AnilDB = (function () {
@@ -1170,7 +1195,7 @@ window.AnilDB = (function () {
 </script>
 <script>
 /**
- * Anil Plastics API Adapter (v09.1)
+ * Anil Plastics API Adapter (v10.0)
  * Self-healing URL discovery (?url= param, ap_webhook_url, anil_webhook_url) & safe JSON parsing.
  */
 window.AnilApi = (function () {
@@ -1291,7 +1316,9 @@ window.AnilApi = (function () {
     updateDispatchNote: (orderId, transportNote) => post('updateDispatchNote', { orderId, transportNote }),
     cancelOrder: (orderId, reason) => post('cancelOrder', { orderId, reason }),
     deleteOrder: (orderId) => post('deleteOrder', { orderId }),
-    createCustomTask: (payload) => post('createCustomTask', payload)
+    createCustomTask: (payload) => post('createCustomTask', payload),
+    getMfgMaster: () => post('getMfgMaster', {}),
+    uploadStockAudit: (items) => post('uploadStockAudit', { items: items || [] })
   };
 })();
 
@@ -1304,6 +1331,48 @@ window.AnilApi = (function () {
   let ORDERS = [];
   let TASKS = [];
   let PARTIES = [];
+  let MFG_MAP = JSON.parse(localStorage.getItem('ap_mfg_map') || '{}');
+
+  function saveMfgMap(mapObj) {
+    if (!mapObj || typeof mapObj !== 'object') return;
+    MFG_MAP = Object.assign({}, MFG_MAP, mapObj);
+    try { localStorage.setItem('ap_mfg_map', JSON.stringify(MFG_MAP)); } catch (e) {}
+  }
+
+  function getMfgDisplay(code) {
+    const c = String(code || '').trim().toUpperCase();
+    if (!c) return '-';
+    const nm = MFG_MAP[c];
+    return nm && nm.toUpperCase() !== c ? `${nm} (${c})` : c;
+  }
+
+  function getCompanyScope() {
+    const u = AnilApi.getConfig().user;
+    if (!u) return null;
+    const roles = u.roles || [];
+    if (u.isOwner === true || roles.includes('owner') || roles.includes('admin')) return null;
+    if (roles.includes('company_salesperson') || roles.includes('companysalesperson')) {
+      const list = Array.isArray(u.assignedCompanies) ? u.assignedCompanies.map((x) => String(x).trim().toUpperCase()).filter(Boolean) : [];
+      return new Set(list);
+    }
+    return null;
+  }
+
+  function getScopedItems() {
+    const scope = getCompanyScope();
+    if (!scope) return ITEMS;
+    return ITEMS.filter((it) => scope.has(String(it.MfgCode || '').trim().toUpperCase()));
+  }
+
+  const MOBILE_WF_STAGES = {
+    'New': { step: 1, nextLabel: 'Release', nextStatus: 'Released' },
+    'Released': { step: 2, nextLabel: 'Start Picking', nextStatus: 'In Progress' },
+    'In Progress': { step: 3, nextLabel: 'Send to Billing', nextStatus: 'Ready for Billing' },
+    'Ready for Billing': { step: 4, nextLabel: 'Mark Billed', nextStatus: 'Billed' },
+    'Billed': { step: 5, nextLabel: 'Dispatched / Delivered', nextStatus: 'Dispatched / Delivered' },
+    'Dispatched / Delivered': { step: 6, nextLabel: null, nextStatus: null },
+    'Cancelled': { step: 0, nextLabel: null, nextStatus: null }
+  };
   let OWNER_DATA = null;
   let OWNER_STAGE_FILTER = 'ACTIVE';
   let OWNER_SUBTAB = 'orders';
@@ -1432,8 +1501,21 @@ window.AnilApi = (function () {
 
     const roles = u.roles || ['salesperson'];
     const isOwner = !!(u.isOwner === true || roles.includes('owner'));
-    const isSales = roles.includes('salesperson') || roles.includes('admin') || isOwner;
+    const isCompSales = roles.includes('company_salesperson') || roles.includes('companysalesperson');
+    const isSales = roles.includes('salesperson') || isCompSales || roles.includes('admin') || isOwner;
     const isEmp = roles.includes('employee') || roles.includes('admin') || isOwner;
+
+    const scopeBanner = $('companyScopeBanner');
+    if (scopeBanner) {
+      const scopeSet = getCompanyScope();
+      if (scopeSet) {
+        const labels = Array.from(scopeSet).map((c) => getMfgDisplay(c));
+        scopeBanner.textContent = `🏢 Company Salesperson Mode: Showing ${labels.length ? labels.join(', ') : 'No Companies Assigned'}`;
+        scopeBanner.classList.add('show');
+      } else {
+        scopeBanner.classList.remove('show');
+      }
+    }
 
     $('roleBtnOwner').style.display = isOwner ? 'flex' : 'none';
     $('roleSwitcher').classList.toggle('show', isOwner || (isSales && isEmp));
@@ -1493,6 +1575,7 @@ window.AnilApi = (function () {
         return;
       }
       if (res.unchanged && ITEMS.length > 0) {
+        if (res.mfgMap) { saveMfgMap(res.mfgMap); refreshItemFilters(); renderOrderList(); }
         if (!silent) toast('Stock is already up to date ✓');
         return;
       }
@@ -1512,6 +1595,7 @@ window.AnilApi = (function () {
         return it;
       });
 
+      if (res.mfgMap) saveMfgMap(res.mfgMap);
       ITEMS = mapped;
       await AnilDB.putMany('items', ITEMS, true);
       localStorage.setItem('ap_stock_version', res.version || '');
@@ -1540,15 +1624,17 @@ window.AnilApi = (function () {
   }
 
   function refreshItemFilters() {
+    const scoped = getScopedItems();
     const counts = {};
-    ITEMS.forEach((it) => {
-      const m = it.MfgCode || 'UNKNOWN';
+    scoped.forEach((it) => {
+      const m = String(it.MfgCode || 'UNKNOWN').trim().toUpperCase() || 'UNKNOWN';
       counts[m] = (counts[m] || 0) + 1;
     });
     const mfgs = Object.keys(counts).sort();
     $('settingsMfgCount').textContent = mfgs.length;
-    const opts = `<option value="ALL">All Manufacturers (${ITEMS.length})</option>` +
-      mfgs.map((m) => `<option value="${escapeHtml(m)}">${escapeHtml(m)} (${counts[m]})</option>`).join('');
+    $('settingsItemsLoadedCount').textContent = scoped.length;
+    const opts = `<option value="ALL">All Manufacturers (${scoped.length})</option>` +
+      mfgs.map((m) => `<option value="${escapeHtml(m)}">${escapeHtml(getMfgDisplay(m))} (${counts[m]})</option>`).join('');
     $('orderMfgFilter').innerHTML = opts;
     $('auditMfgFilter').innerHTML = opts;
   }
@@ -1581,8 +1667,10 @@ window.AnilApi = (function () {
   function filterItems(query, mfg, chipFilter, extra) {
     const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
     const ex = extra || {};
-    const out = ITEMS.filter((it) => {
-      if (mfg && mfg !== 'ALL' && (it.MfgCode || 'UNKNOWN') !== mfg) return false;
+    const baseItems = getScopedItems();
+    const out = baseItems.filter((it) => {
+      const mCode = String(it.MfgCode || 'UNKNOWN').trim().toUpperCase() || 'UNKNOWN';
+      if (mfg && mfg !== 'ALL' && mCode !== mfg) return false;
       const stk = Number(it.Stock) || 0;
       const rt = Number(it.SaleRate) || 0;
       if (chipFilter === 'inStock' && !(stk > 0)) return false;
@@ -1628,7 +1716,7 @@ window.AnilApi = (function () {
           <span class="badge-tag ${c ? 'tag-cart' : 'tag-count'}">${c ? `✓ ${c.Qty} ${escapeHtml(it.Pack || 'PC')}` : '+ Add'}</span>
         </div>
         <div class="item-details">
-          <div>Mfg: <span class="mfg-pill">${escapeHtml(it.MfgCode || '-')}</span> · <span class="mono">${escapeHtml(it.Barcode || '-')}</span></div>
+          <div>Mfg: <span class="mfg-pill">${escapeHtml(getMfgDisplay(it.MfgCode))}</span> · <span class="mono">${escapeHtml(it.Barcode || '-')}</span></div>
           <div>Avail: <span class="${stk > 0 ? 'val-highlight' : 'val-zero'}">${stk}</span>${resTag} · <span class="val-highlight">₹ ${Number(it.SaleRate || 0).toFixed(2)}</span></div>
         </div>
         ${c && c.ItemNarration ? `<div class="item-note">📝 ${escapeHtml(c.ItemNarration)}</div>` : ''}
@@ -2081,7 +2169,7 @@ window.AnilApi = (function () {
           <span class="badge-tag tag-count">${counted !== undefined ? `Count: ${counted} (${diff >= 0 ? '+' + diff : diff})` : 'Tap to Count'}</span>
         </div>
         <div class="item-details">
-          <div>Mfg: <span class="mfg-pill">${escapeHtml(it.MfgCode || '-')}</span> · <span class="mono">${escapeHtml(it.Barcode || '-')}</span></div>
+          <div>Mfg: <span class="mfg-pill">${escapeHtml(getMfgDisplay(it.MfgCode))}</span> · <span class="mono">${escapeHtml(it.Barcode || '-')}</span></div>
           <div>Avail Stock: <b>${sys}</b> · ₹ ${Number(it.SaleRate || 0).toFixed(2)}</div>
         </div>
       </li>`;
@@ -2262,8 +2350,22 @@ window.AnilApi = (function () {
       { key: 'Dispatched / Delivered', label: 'Dispatched / Delivered' },
       { key: 'Cancelled', label: 'Cancelled' }
     ];
-    const activeCount = ['New', 'Released', 'In Progress', 'Ready for Billing', 'Billed', 'Dispatched / Delivered']
-      .reduce((s, k) => s + (d.counts[k] || 0), 0);
+    if (d.mfgMap) saveMfgMap(d.mfgMap);
+    const stagePalette = {
+      'New': '#2563eb', 'Released': '#d97706', 'In Progress': '#ea580c',
+      'Ready for Billing': '#7c3aed', 'Billed': '#16a34a', 'Dispatched / Delivered': '#0d9488'
+    };
+    const activeStages = ['New', 'Released', 'In Progress', 'Ready for Billing', 'Billed', 'Dispatched / Delivered'];
+    const activeCount = activeStages.reduce((s, k) => s + (d.counts[k] || 0), 0);
+
+    if ($('ownerPipelineBar')) {
+      const denom = Math.max(1, activeCount);
+      $('ownerPipelineBar').innerHTML = activeStages.map((k) => {
+        const cnt = d.counts[k] || 0;
+        const pct = Math.round((cnt / denom) * 100);
+        return cnt > 0 ? `<div style="width:${pct}%;background:${stagePalette[k]}" title="${k}: ${cnt}"></div>` : '';
+      }).join('');
+    }
 
     $('ownerStageStrip').innerHTML = stages.map((st) => {
       const cnt = st.key === 'ACTIVE' ? activeCount : (d.counts[st.key] || 0);
@@ -2307,9 +2409,21 @@ window.AnilApi = (function () {
       return;
     }
 
+    const stepLabels = ['1.Booked', '2.Released', '3.Picking', '4.Billing', '5.Dispatched'];
     $('ownerOrdersContainer').innerHTML = filtered.map((o) => {
       const wf = o.status || 'New';
       const wfClass = 'wf-' + wf.replace(/[^a-zA-Z0-9]/g, '');
+      const stCfg = MOBILE_WF_STAGES[wf] || { step: 1, nextLabel: null };
+      const curStep = stCfg.step;
+      const stepperHtml = wf !== 'Cancelled' ? `
+        <div class="wf-stepper">
+          ${stepLabels.map((lbl, idx) => {
+            const sNum = idx + 1;
+            const cls = curStep > sNum ? 'done' : (curStep === sNum ? 'curr' : '');
+            return `<div class="wf-step ${cls}">${lbl}</div>`;
+          }).join('')}
+        </div>` : '';
+      const itemNotes = (o.items || []).filter((it) => String(it.ItemNarration || '').trim());
       return `<div class="order-card synced" data-own-ord="${escapeHtml(o.id)}" style="cursor:pointer">
         <div class="order-card-header">
           <div>
@@ -2319,11 +2433,19 @@ window.AnilApi = (function () {
           <div style="font-size:16.5px;font-weight:800;color:var(--brand-green-dark)">₹${Number(o.total || 0).toLocaleString('en-IN')}</div>
         </div>
         <div class="order-card-body" style="padding:9px 14px;font-size:13.5px">
-          <div><b>${(o.items || []).length}</b> item(s) ${o.route ? '· Route: <b>' + escapeHtml(o.route) + '</b>' : ''}</div>
-          ${o.assignedTo ? `<div>👷 Assigned: <b>${escapeHtml(o.assignedTo)}</b> (${escapeHtml(o.priority || 'Normal')})</div>` : ''}
-          ${o.invoiceNo ? `<div style="color:#166534;font-weight:700">🧾 Invoice: <span class="mono">${escapeHtml(o.invoiceNo)}</span></div>` : ''}
+          ${stepperHtml}
+          <div style="margin-top:4px"><b>${(o.items || []).length}</b> item(s) ${o.route ? '· Route: <b>' + escapeHtml(o.route) + '</b>' : ''}</div>
+          ${o.assignedTo ? `<div>👷 Picker: <b>${escapeHtml(o.assignedTo)}</b> (${escapeHtml(o.priority || 'Normal')})</div>` : ''}
+          ${o.narration ? `<div style="background:#fef9c3;color:#854d0e;padding:3px 7px;border-radius:6px;margin-top:4px;font-weight:700">📝 ${escapeHtml(o.narration)}</div>` : ''}
+          ${itemNotes.length ? `<div style="color:#1e40af;font-size:12.5px;margin-top:3px">${itemNotes.map((it) => `<div>📝 <b>${escapeHtml(it.ItemName)}:</b> ${escapeHtml(it.ItemNarration)}</div>`).join('')}</div>` : ''}
+          ${o.invoiceNo ? `<div style="color:#166534;font-weight:700;margin-top:3px">🧾 Invoice: <span class="mono">${escapeHtml(o.invoiceNo)}</span></div>` : ''}
           ${o.transportNote ? `<div style="color:#0369a1;font-weight:700">🚚 Dispatch/LR: ${escapeHtml(o.transportNote)}</div>` : ''}
         </div>
+        ${stCfg.nextLabel ? `
+          <div class="order-card-footer" style="justify-content:space-between;align-items:center">
+            <span style="font-size:12px;color:var(--text-muted);font-weight:700">Tap card for details</span>
+            <button type="button" class="btn-sm btn-green" style="min-height:36px;padding:6px 12px;font-size:13px" data-own-fwd="${escapeHtml(o.id)}">⏭️ ${escapeHtml(stCfg.nextLabel)}</button>
+          </div>` : ''}
       </div>`;
     }).join('');
   }
@@ -2604,7 +2726,33 @@ window.AnilApi = (function () {
       });
     };
     $('ownerOrderSearch').oninput = renderOwnerOrdersList;
-    $('ownerOrdersContainer').onclick = (e) => {
+    $('ownerOrdersContainer').onclick = async (e) => {
+      const fwdBtn = e.target.closest('[data-own-fwd]');
+      if (fwdBtn) {
+        e.stopPropagation();
+        const oid = fwdBtn.dataset.ownFwd;
+        const ord = OWNER_DATA && (OWNER_DATA.orders || []).find((x) => x.id === oid);
+        if (!ord) return;
+        if (ord.status === 'Released') {
+          const res = await AnilApi.setStatus([oid], 'In Progress', { remarks: 'Started from Owner Live' });
+          if (!res.ok) { toast(res.message, true); return; }
+          toast(`⏭️ ${oid} moved to In Progress`);
+          loadOwnerMobileDashboard(true);
+          return;
+        }
+        if (ord.status === 'In Progress') {
+          const itemsPayload = (ord.items || []).map((it, idx) => ({
+            itemNo: it.ItemNo || (idx + 1), resultStatus: 'Done', fulfilledQty: it.Qty, reason: ''
+          }));
+          const res = await AnilApi.taskComplete(oid, itemsPayload, 'TSK-' + oid, 'Completed from Owner Live');
+          if (!res.ok) { toast(res.message, true); return; }
+          toast(`⏭️ ${oid} moved to Ready for Billing`);
+          loadOwnerMobileDashboard(true);
+          return;
+        }
+        openOwnerOrderModal(oid);
+        return;
+      }
       const card = e.target.closest('[data-own-ord]');
       if (card) openOwnerOrderModal(card.dataset.ownOrd);
     };
@@ -2792,7 +2940,7 @@ window.AnilApi = (function () {
       $('orderModalItemName').textContent = it.ItemName;
       $('orderModalStock').textContent = it.Stock;
       $('orderModalPack').textContent = it.Pack || 'PC';
-      $('orderModalMfgCode').textContent = it.MfgCode || '-';
+      $('orderModalMfgCode').textContent = getMfgDisplay(it.MfgCode);
       $('orderModalBarcode').textContent = it.Barcode || '-';
       $('orderModalQty').value = existing ? existing.Qty : '';
       $('orderModalRate').value = existing ? existing.Rate : (it.SaleRate || 0);
@@ -3065,6 +3213,46 @@ window.AnilApi = (function () {
       renderAuditList();
       toast('Stock count saved ✓');
     };
+    $('btnUploadAuditCloud').onclick = async () => {
+      const diffKeys = Object.keys(AUDIT_COUNTS);
+      if (!diffKeys.length) { toast('No counted stock items to upload yet.', true); return; }
+      const payload = diffKeys.map((k) => {
+        const it = ITEMS.find((x) => x._key === k) || { ItemName: k, Stock: 0, MfgCode: '', Barcode: '' };
+        const sys = Number(it.Stock) || 0;
+        const phy = Number(AUDIT_COUNTS[k]) || 0;
+        return {
+          ItemName: it.ItemName,
+          MfgCode: it.MfgCode || '',
+          CompanyName: getMfgDisplay(it.MfgCode),
+          Barcode: it.Barcode || '',
+          SystemAvail: sys,
+          PhysicalCount: phy,
+          Difference: Number((phy - sys).toFixed(2))
+        };
+      }).filter((x) => x.Difference !== 0);
+
+      if (!payload.length) {
+        toast('All counted items match system stock (0 differences).', true);
+        return;
+      }
+      if (!navigator.onLine) {
+        toast('Internet connection required to upload stock differences to dashboard.', true);
+        return;
+      }
+      $('btnUploadAuditCloud').disabled = true;
+      $('btnUploadAuditCloud').textContent = '⏳ Uploading…';
+      try {
+        const res = await AnilApi.uploadStockAudit(payload);
+        if (!res.ok) { toast(res.message || 'Upload failed', true); return; }
+        toast(`✅ Uploaded ${res.uploaded || payload.length} stock variance(s) to Office Dashboard!`);
+      } catch (err) {
+        toast(err.message, true);
+      } finally {
+        $('btnUploadAuditCloud').disabled = false;
+        $('btnUploadAuditCloud').textContent = '☁️ Upload to Dashboard';
+      }
+    };
+
     $('btnExportAudit').onclick = async () => {
       const diffKeys = Object.keys(AUDIT_COUNTS);
       if (!diffKeys.length) { toast('No audit counts recorded yet', true); return; }
@@ -3098,7 +3286,7 @@ window.AnilApi = (function () {
 
     $('btnBackup').onclick = () => {
       const blob = new Blob([JSON.stringify({
-        version: '09.1',
+        version: '10.0',
         exportedAt: new Date().toISOString(),
         orders: ORDERS,
         auditCounts: AUDIT_COUNTS

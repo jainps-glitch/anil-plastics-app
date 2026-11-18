@@ -1,5 +1,5 @@
 /**
- * Anil Plastics API Adapter (v09.1)
+ * Anil Plastics API Adapter (v10.0)
  * Self-healing URL discovery (?url= param, ap_webhook_url, anil_webhook_url) & safe JSON parsing.
  */
 window.AnilApi = (function () {
@@ -120,6 +120,8 @@ window.AnilApi = (function () {
     updateDispatchNote: (orderId, transportNote) => post('updateDispatchNote', { orderId, transportNote }),
     cancelOrder: (orderId, reason) => post('cancelOrder', { orderId, reason }),
     deleteOrder: (orderId) => post('deleteOrder', { orderId }),
-    createCustomTask: (payload) => post('createCustomTask', payload)
+    createCustomTask: (payload) => post('createCustomTask', payload),
+    getMfgMaster: () => post('getMfgMaster', {}),
+    uploadStockAudit: (items) => post('uploadStockAudit', { items: items || [] })
   };
 })();
