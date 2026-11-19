@@ -1,4 +1,4 @@
-const CACHE_NAME = 'anil-plastics-pwa-v09.1';
+const CACHE_NAME = 'anil-plastics-pwa-v10.1';
 const CORE_ASSETS = [
   './',
   './index.html',

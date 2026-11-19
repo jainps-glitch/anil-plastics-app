@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Anil Plastics">
-<title>Anil Plastics - Order &amp; Tasks (Ver 09.1)</title>
+<title>Anil Plastics - Order &amp; Tasks (Ver 10.1)</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -46,37 +46,48 @@
   :focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 
   .app-top { position: sticky; top: 0; z-index: 100; box-shadow: 0 3px 12px rgba(0,0,0,.14); }
+  /* Anti-overlap Currency Prefix Box (prevents Android OEM font glyph collision on Rupee symbol) */
+  .cur {
+    display: inline-block;
+    min-width: 1.15em;
+    margin-right: 4px;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-weight: 800;
+    text-align: left;
+    vertical-align: baseline;
+  }
+
   .brand-header {
     background: linear-gradient(135deg, #134e34 0%, #1f7a52 100%);
     color: #fff;
-    padding: 10px 14px 8px; padding-top: max(10px, env(safe-area-inset-top));
+    padding: 8px 12px 7px; padding-top: max(8px, env(safe-area-inset-top));
     display: flex; flex-direction: column; align-items: center;
   }
   .brand-title-row { width: 100%; display: flex; justify-content: space-between; align-items: center; }
-  .brand-wordmark { font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: .2px; display: flex; align-items: center; gap: 8px; }
-  .brand-badge { background: var(--accent); color: #103b25; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 800; }
-  .salesman-bar { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 6px; }
+  .brand-wordmark { font-size: 19px; font-weight: 800; color: #ffffff; letter-spacing: .2px; display: flex; align-items: center; gap: 7px; }
+  .brand-badge { background: var(--accent); color: #103b25; font-size: 10.5px; padding: 2px 7px; border-radius: 6px; font-weight: 800; }
+  .salesman-bar { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-top: 6px; gap: 6px; }
   .pill {
-    background: rgba(255,255,255,.16); padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28);
-    display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #ffffff;
+    background: rgba(255,255,255,.16); padding: 5px 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,.28);
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #ffffff;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 54vw;
   }
   .pill.clock { font-weight: 600; color: #e2f7ec; }
-  .net-dot { width: 10px; height: 10px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 2px rgba(74,222,128,.3); display: inline-block; flex-shrink: 0; }
+  .net-dot { width: 9px; height: 9px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 2px rgba(74,222,128,.3); display: inline-block; flex-shrink: 0; }
   .net-dot.off { background: #f87171; box-shadow: 0 0 0 2px rgba(248,113,113,.3); }
   .btn-upload-header {
-    background: var(--accent); color: #103b25; border: none; padding: 7px 14px; border-radius: 10px;
-    font-size: 13.5px; font-weight: 800; white-space: nowrap; min-height: 38px; box-shadow: 0 2px 6px rgba(0,0,0,.18);
+    background: var(--accent); color: #103b25; border: none; padding: 6px 13px; border-radius: 10px;
+    font-size: 13px; font-weight: 800; white-space: nowrap; min-height: 36px; box-shadow: 0 2px 6px rgba(0,0,0,.18);
   }
 
   .role-switcher {
-    display: none; background: #0c3523; padding: 7px 10px; gap: 8px; border-top: 1px solid rgba(255,255,255,.12);
+    display: none; background: #0c3523; padding: 6px 8px; gap: 6px; border-top: 1px solid rgba(255,255,255,.12);
   }
   .role-switcher.show { display: flex; }
   .role-btn {
-    flex: 1; padding: 11px 8px; border-radius: 10px; border: 2px solid transparent;
-    background: rgba(255,255,255,.1); color: #d1f2e0; font-size: 15px; font-weight: 800;
-    display: flex; align-items: center; justify-content: center; gap: 6px;
+    flex: 1; padding: 9px 5px; border-radius: 10px; border: 2px solid transparent;
+    background: rgba(255,255,255,.1); color: #d1f2e0; font-size: 13.5px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;
   }
   .role-btn.active { background: var(--accent); color: #103b25; border-color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
 
@@ -148,20 +159,36 @@
   .result-meta { font-size: 13px; font-weight: 700; color: var(--text-muted); padding: 8px 14px; background: #f7fbf8; border-bottom: 1px solid var(--line); }
 
   .item-list { list-style: none; padding-bottom: calc(108px + var(--safe-bottom)); }
-  .item-card { background: #fff; padding: 14px 14px; border-bottom: 1.5px solid #dcebe2; cursor: pointer; }
+  .item-card {
+    background: #fff; padding: 12px 13px; border-bottom: 1.5px solid #dcebe2; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: stretch; gap: 10px;
+  }
   .item-card:active { background: #eef8f2; }
   .item-card.in-cart { background: #e8f8ef; border-left: 6px solid var(--brand-green); }
   .item-card.modified { border-left: 6px solid #f59e0b; }
-  .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 8px; }
-  .item-name { font-size: 16.5px; font-weight: 800; color: #0f1f17; line-height: 1.32; word-break: break-word; }
-  .badge-tag { font-size: 13px; padding: 5px 11px; border-radius: 8px; font-weight: 800; white-space: nowrap; flex-shrink: 0; }
+  .item-main { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 5px; }
+  .item-side {
+    flex-shrink: 0; min-width: 104px; display: flex; flex-direction: column;
+    align-items: flex-end; justify-content: space-between; gap: 6px; text-align: right;
+  }
+  .item-name { font-size: 16px; font-weight: 800; color: #0f1f17; line-height: 1.3; word-break: break-word; }
+  .item-rate-box {
+    background: #f0fdf4; border: 1.5px solid #86efac; color: var(--brand-green-dark);
+    padding: 4px 9px; border-radius: 8px; font-size: 16.5px; font-weight: 800; white-space: nowrap;
+  }
+  .item-rate-unit { font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-top: 1px; }
+  .badge-tag { font-size: 13px; padding: 5px 11px; border-radius: 8px; font-weight: 800; white-space: nowrap; }
   .tag-count { background: #e0f2fe; color: #0369a1; }
   .tag-cart { background: var(--brand-green); color: #fff; }
-  .item-details { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; font-size: 14px; color: var(--text-muted); font-weight: 600; }
-  .mfg-pill { background: #e2f3e9; color: var(--brand-green-dark); padding: 2px 8px; border-radius: 5px; font-weight: 800; }
+  .item-meta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 7px; font-size: 13px; color: var(--text-muted); font-weight: 600; }
+  .mfg-pill { background: #e2f3e9; color: var(--brand-green-dark); padding: 2px 7px; border-radius: 5px; font-weight: 800; font-size: 12px; }
+  .stk-pill { padding: 2px 8px; border-radius: 6px; font-size: 12.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; }
+  .stk-ok { background: #dcfce7; color: #166534; }
+  .stk-zero { background: #fee2e2; color: #b91c1c; }
+  .stk-res { background: #fef3c7; color: #92400e; }
   .val-highlight { color: #0f1f17; font-weight: 800; }
   .val-zero { color: #dc2626; font-weight: 800; }
-  .item-note { font-size: 13px; color: var(--brand-green-dark); margin-top: 4px; font-weight: 700; }
+  .item-note { font-size: 12.5px; color: var(--brand-green-dark); margin-top: 2px; font-weight: 700; }
   .btn-more { display: block; width: calc(100% - 28px); margin: 14px; padding: 14px; border-radius: 10px; border: 2px dashed var(--brand-green); background: #fff; color: var(--brand-green-dark); font-weight: 800; font-size: 15px; }
 
   .cart-bar {
@@ -366,6 +393,24 @@
   }
   .adv-mini-inp:focus { border-color: var(--brand-green); outline: none; }
 
+  /* 5-Step Visual Order Workflow Stepper (Mobile Owner Live) */
+  .wf-stepper {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
+    margin: 8px 0 4px; padding: 6px; background: #f4faf7; border-radius: 9px; border: 1px solid #d5e7dd;
+  }
+  .wf-step {
+    text-align: center; font-size: 10.5px; font-weight: 800; padding: 4px 2px;
+    border-radius: 6px; background: #e2e8f0; color: #64748b; line-height: 1.2;
+  }
+  .wf-step.done { background: #dcfce7; color: #166534; }
+  .wf-step.curr { background: #134e34; color: #ffeb3b; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+
+  .company-scope-banner {
+    display: none; background: #ecfdf5; border-bottom: 1.5px solid #6ee7b7;
+    color: #065f46; padding: 8px 14px; font-size: 13px; font-weight: 800;
+  }
+  .company-scope-banner.show { display: block; }
+
   .hidden-input { display: none; }
 </style>
 </head>
@@ -391,7 +436,7 @@
 <div class="app-top">
   <div class="brand-header">
     <div class="brand-title-row">
-      <div class="brand-wordmark">ANIL PLASTICS <span class="brand-badge">Ver 09.1</span></div>
+      <div class="brand-wordmark">ANIL PLASTICS <span class="brand-badge">Ver 10.1</span></div>
       <button class="btn-upload-header" id="btnTopSyncStock">🔄 Stock</button>
     </div>
     <div class="salesman-bar">
@@ -441,6 +486,9 @@
     </div>
   </div>
 
+  <div style="background:#fff;padding:10px 12px 0">
+    <div id="ownerPipelineBar" style="display:flex;height:10px;border-radius:999px;overflow:hidden;background:#e2ede6;gap:2px"></div>
+  </div>
   <div class="stage-strip" id="ownerStageStrip"></div>
 
   <div class="owner-subtabs" id="ownerSubtabs">
@@ -519,6 +567,7 @@
 </section>
 
 <section id="tabOrder" class="tab-content active">
+  <div id="companyScopeBanner" class="company-scope-banner"></div>
   <div id="editingBanner" class="editing-banner">
     <span id="editingBannerText">Editing saved order</span>
     <button id="btnCancelEdit">Cancel Edit</button>
@@ -615,7 +664,7 @@
   <div class="cart-bar" id="cartBar">
     <div>
       <div style="font-size:13px;font-weight:700">Items: <b id="cartCount">0</b> · Qty: <b id="cartQty">0</b></div>
-      <div class="cart-total">₹ <span id="cartTotal">0.00</span></div>
+      <div class="cart-total"><span class="cur">₹</span><span id="cartTotal">0.00</span></div>
     </div>
     <div class="cart-actions">
       <button class="btn-ghost-light" id="btnClearCart">Clear</button>
@@ -705,7 +754,7 @@
     <div class="summary-strip">
       <div class="stat"><b id="statToday">0</b><span>Today</span></div>
       <div class="stat"><b id="statPending">0</b><span>Waiting Sync</span></div>
-      <div class="stat"><b id="statValue">₹0</b><span>Today Value</span></div>
+      <div class="stat"><b id="statValue"><span class="cur">₹</span>0</b><span>Today Value</span></div>
     </div>
     <button class="btn-wide btn-blue" id="btnCloudSync">☁️ <span id="btnCloudSyncText">Sync &amp; Check Order Status</span></button>
     <div class="grid-2">
@@ -745,9 +794,12 @@
       <button class="chip" data-filter="modified">⚠️ Differences (<span id="auditDiffCount">0</span>)</button>
     </div>
   </div>
-  <div class="result-meta" style="display:flex;justify-content:space-between;align-items:center">
+  <div class="result-meta" style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap">
     <span id="auditResultMeta"></span>
-    <button class="btn-sm btn-green" id="btnExportAudit">📥 Export Diff</button>
+    <div style="display:flex;gap:6px">
+      <button class="btn-sm btn-blue" id="btnUploadAuditCloud" style="min-height:36px;padding:6px 10px;font-size:12.5px">☁️ Upload to Dashboard</button>
+      <button class="btn-sm btn-green" id="btnExportAudit" style="min-height:36px;padding:6px 10px;font-size:12.5px">📥 Export Excel</button>
+    </div>
   </div>
   <ul id="auditItemList" class="item-list"></ul>
 </section>
@@ -798,7 +850,7 @@
       <button class="btn-sm btn-danger-soft btn-wide" id="btnReset">🗑️ Clear All Phone Data</button>
     </div>
   </div>
-  <div class="app-footer">Anil Plastics Workflow System · Ver 09.1 PWA</div>
+  <div class="app-footer">Anil Plastics Workflow System · Ver 10.1 PWA</div>
 </section>
 
 <input type="file" id="fileInput" class="hidden-input" accept=".xlsx,.xls,.csv">
@@ -832,7 +884,7 @@
         <input type="text" id="orderModalItemNote" class="form-control" placeholder="e.g. 10+1">
       </div>
     </div>
-    <div class="line-amount"><span>Line Amount</span><b>₹ <span id="orderModalLineAmt">0.00</span></b></div>
+    <div class="line-amount"><span>Line Amount</span><b><span class="cur">₹</span><span id="orderModalLineAmt">0.00</span></b></div>
     <div class="modal-buttons">
       <button class="btn-modal btn-modal-cancel" data-close-modal="orderItemModal">Cancel</button>
       <button class="btn-modal btn-modal-delete" id="btnRemoveFromCart" style="display:none">Remove</button>
@@ -847,7 +899,7 @@
     <div class="modal-row"><span>Party: <b id="revPartyName">-</b></span><span>Route: <b id="revRoute">-</b></span></div>
     <div class="modal-row"><span>Salesman: <b id="revSalesman">-</b></span><span>Date: <b id="revDate">-</b></span></div>
     <div id="revItemsList" style="max-height:42vh;overflow-y:auto;font-size:14px;margin:8px 0"></div>
-    <div class="rev-total"><span>Total (<span id="revQty">0</span> qty)</span><span>₹ <span id="revTotalAmount">0.00</span></span></div>
+    <div class="rev-total"><span>Total (<span id="revQty">0</span> qty)</span><span><span class="cur">₹</span><span id="revTotalAmount">0.00</span></span></div>
     <div class="modal-buttons">
       <button class="btn-modal btn-modal-cancel" data-close-modal="reviewOrderModal">Back</button>
       <button class="btn-modal btn-modal-save" id="btnFinalizeOrder">Save Order</button>
@@ -899,7 +951,7 @@
 
 <script>
 /**
- * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v09.1
+ * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v10.1
  * Guarantees instant, non-hanging startup on Android Chrome, WebViews, file://, content://, and HTTPS.
  */
 window.AnilDB = (function () {
@@ -1170,7 +1222,7 @@ window.AnilDB = (function () {
 </script>
 <script>
 /**
- * Anil Plastics API Adapter (v09.1)
+ * Anil Plastics API Adapter (v10.1)
  * Self-healing URL discovery (?url= param, ap_webhook_url, anil_webhook_url) & safe JSON parsing.
  */
 window.AnilApi = (function () {
@@ -1291,7 +1343,9 @@ window.AnilApi = (function () {
     updateDispatchNote: (orderId, transportNote) => post('updateDispatchNote', { orderId, transportNote }),
     cancelOrder: (orderId, reason) => post('cancelOrder', { orderId, reason }),
     deleteOrder: (orderId) => post('deleteOrder', { orderId }),
-    createCustomTask: (payload) => post('createCustomTask', payload)
+    createCustomTask: (payload) => post('createCustomTask', payload),
+    getMfgMaster: () => post('getMfgMaster', {}),
+    uploadStockAudit: (items) => post('uploadStockAudit', { items: items || [] })
   };
 })();
 
@@ -1304,6 +1358,48 @@ window.AnilApi = (function () {
   let ORDERS = [];
   let TASKS = [];
   let PARTIES = [];
+  let MFG_MAP = JSON.parse(localStorage.getItem('ap_mfg_map') || '{}');
+
+  function saveMfgMap(mapObj) {
+    if (!mapObj || typeof mapObj !== 'object') return;
+    MFG_MAP = Object.assign({}, MFG_MAP, mapObj);
+    try { localStorage.setItem('ap_mfg_map', JSON.stringify(MFG_MAP)); } catch (e) {}
+  }
+
+  function getMfgDisplay(code) {
+    const c = String(code || '').trim().toUpperCase();
+    if (!c) return '-';
+    const nm = MFG_MAP[c];
+    return nm && nm.toUpperCase() !== c ? `${nm} (${c})` : c;
+  }
+
+  function getCompanyScope() {
+    const u = AnilApi.getConfig().user;
+    if (!u) return null;
+    const roles = u.roles || [];
+    if (u.isOwner === true || roles.includes('owner') || roles.includes('admin')) return null;
+    if (roles.includes('company_salesperson') || roles.includes('companysalesperson')) {
+      const list = Array.isArray(u.assignedCompanies) ? u.assignedCompanies.map((x) => String(x).trim().toUpperCase()).filter(Boolean) : [];
+      return new Set(list);
+    }
+    return null;
+  }
+
+  function getScopedItems() {
+    const scope = getCompanyScope();
+    if (!scope) return ITEMS;
+    return ITEMS.filter((it) => scope.has(String(it.MfgCode || '').trim().toUpperCase()));
+  }
+
+  const MOBILE_WF_STAGES = {
+    'New': { step: 1, nextLabel: 'Release', nextStatus: 'Released' },
+    'Released': { step: 2, nextLabel: 'Start Picking', nextStatus: 'In Progress' },
+    'In Progress': { step: 3, nextLabel: 'Send to Billing', nextStatus: 'Ready for Billing' },
+    'Ready for Billing': { step: 4, nextLabel: 'Mark Billed', nextStatus: 'Billed' },
+    'Billed': { step: 5, nextLabel: 'Dispatched / Delivered', nextStatus: 'Dispatched / Delivered' },
+    'Dispatched / Delivered': { step: 6, nextLabel: null, nextStatus: null },
+    'Cancelled': { step: 0, nextLabel: null, nextStatus: null }
+  };
   let OWNER_DATA = null;
   let OWNER_STAGE_FILTER = 'ACTIVE';
   let OWNER_SUBTAB = 'orders';
@@ -1366,6 +1462,14 @@ window.AnilApi = (function () {
 
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function rs(val) {
+    return `<span class="cur">₹</span>${Number(val || 0).toFixed(2)}`;
+  }
+
+  function rsInt(val) {
+    return `<span class="cur">₹</span>${Number(val || 0).toLocaleString('en-IN')}`;
   }
 
   function loadScriptOnce(src, globalName) {
@@ -1432,8 +1536,21 @@ window.AnilApi = (function () {
 
     const roles = u.roles || ['salesperson'];
     const isOwner = !!(u.isOwner === true || roles.includes('owner'));
-    const isSales = roles.includes('salesperson') || roles.includes('admin') || isOwner;
+    const isCompSales = roles.includes('company_salesperson') || roles.includes('companysalesperson');
+    const isSales = roles.includes('salesperson') || isCompSales || roles.includes('admin') || isOwner;
     const isEmp = roles.includes('employee') || roles.includes('admin') || isOwner;
+
+    const scopeBanner = $('companyScopeBanner');
+    if (scopeBanner) {
+      const scopeSet = getCompanyScope();
+      if (scopeSet) {
+        const labels = Array.from(scopeSet).map((c) => getMfgDisplay(c));
+        scopeBanner.textContent = `🏢 Company Salesperson Mode: Showing ${labels.length ? labels.join(', ') : 'No Companies Assigned'}`;
+        scopeBanner.classList.add('show');
+      } else {
+        scopeBanner.classList.remove('show');
+      }
+    }
 
     $('roleBtnOwner').style.display = isOwner ? 'flex' : 'none';
     $('roleSwitcher').classList.toggle('show', isOwner || (isSales && isEmp));
@@ -1493,6 +1610,7 @@ window.AnilApi = (function () {
         return;
       }
       if (res.unchanged && ITEMS.length > 0) {
+        if (res.mfgMap) { saveMfgMap(res.mfgMap); refreshItemFilters(); renderOrderList(); }
         if (!silent) toast('Stock is already up to date ✓');
         return;
       }
@@ -1512,6 +1630,7 @@ window.AnilApi = (function () {
         return it;
       });
 
+      if (res.mfgMap) saveMfgMap(res.mfgMap);
       ITEMS = mapped;
       await AnilDB.putMany('items', ITEMS, true);
       localStorage.setItem('ap_stock_version', res.version || '');
@@ -1540,15 +1659,17 @@ window.AnilApi = (function () {
   }
 
   function refreshItemFilters() {
+    const scoped = getScopedItems();
     const counts = {};
-    ITEMS.forEach((it) => {
-      const m = it.MfgCode || 'UNKNOWN';
+    scoped.forEach((it) => {
+      const m = String(it.MfgCode || 'UNKNOWN').trim().toUpperCase() || 'UNKNOWN';
       counts[m] = (counts[m] || 0) + 1;
     });
     const mfgs = Object.keys(counts).sort();
     $('settingsMfgCount').textContent = mfgs.length;
-    const opts = `<option value="ALL">All Manufacturers (${ITEMS.length})</option>` +
-      mfgs.map((m) => `<option value="${escapeHtml(m)}">${escapeHtml(m)} (${counts[m]})</option>`).join('');
+    $('settingsItemsLoadedCount').textContent = scoped.length;
+    const opts = `<option value="ALL">All Manufacturers (${scoped.length})</option>` +
+      mfgs.map((m) => `<option value="${escapeHtml(m)}">${escapeHtml(getMfgDisplay(m))} (${counts[m]})</option>`).join('');
     $('orderMfgFilter').innerHTML = opts;
     $('auditMfgFilter').innerHTML = opts;
   }
@@ -1581,8 +1702,10 @@ window.AnilApi = (function () {
   function filterItems(query, mfg, chipFilter, extra) {
     const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
     const ex = extra || {};
-    const out = ITEMS.filter((it) => {
-      if (mfg && mfg !== 'ALL' && (it.MfgCode || 'UNKNOWN') !== mfg) return false;
+    const baseItems = getScopedItems();
+    const out = baseItems.filter((it) => {
+      const mCode = String(it.MfgCode || 'UNKNOWN').trim().toUpperCase() || 'UNKNOWN';
+      if (mfg && mfg !== 'ALL' && mCode !== mfg) return false;
       const stk = Number(it.Stock) || 0;
       const rt = Number(it.SaleRate) || 0;
       if (chipFilter === 'inStock' && !(stk > 0)) return false;
@@ -1621,17 +1744,25 @@ window.AnilApi = (function () {
     const html = slice.map((it) => {
       const c = CART[it._key];
       const stk = Number(it.Stock) || 0;
-      const resTag = it.Reserved > 0 ? ` <small style="color:#b45309">(Res:${it.Reserved})</small>` : '';
+      const pack = escapeHtml(it.Pack || 'PC');
+      const resBadge = it.Reserved > 0 ? `<span class="stk-pill stk-res">Res: ${it.Reserved}</span>` : '';
       return `<li class="item-card ${c ? 'in-cart' : ''}" data-key="${encodeURIComponent(it._key)}">
-        <div class="item-header">
+        <div class="item-main">
           <div class="item-name">${escapeHtml(it.ItemName)}</div>
-          <span class="badge-tag ${c ? 'tag-cart' : 'tag-count'}">${c ? `✓ ${c.Qty} ${escapeHtml(it.Pack || 'PC')}` : '+ Add'}</span>
+          <div class="item-meta-row">
+            <span class="mfg-pill">${escapeHtml(getMfgDisplay(it.MfgCode))}</span>
+            <span class="mono">${escapeHtml(it.Barcode || '-')}</span>
+          </div>
+          <div class="item-meta-row">
+            <span class="stk-pill ${stk > 0 ? 'stk-ok' : 'stk-zero'}">Avail: ${stk} ${pack}</span>
+            ${resBadge}
+          </div>
+          ${c && c.ItemNarration ? `<div class="item-note">📝 ${escapeHtml(c.ItemNarration)}</div>` : ''}
         </div>
-        <div class="item-details">
-          <div>Mfg: <span class="mfg-pill">${escapeHtml(it.MfgCode || '-')}</span> · <span class="mono">${escapeHtml(it.Barcode || '-')}</span></div>
-          <div>Avail: <span class="${stk > 0 ? 'val-highlight' : 'val-zero'}">${stk}</span>${resTag} · <span class="val-highlight">₹ ${Number(it.SaleRate || 0).toFixed(2)}</span></div>
+        <div class="item-side">
+          <div class="item-rate-box">${rs(it.SaleRate)}<span class="item-rate-unit">per ${pack}</span></div>
+          <span class="badge-tag ${c ? 'tag-cart' : 'tag-count'}">${c ? `✓ ${c.Qty} ${pack}` : '+ Add'}</span>
         </div>
-        ${c && c.ItemNarration ? `<div class="item-note">📝 ${escapeHtml(c.ItemNarration)}</div>` : ''}
       </li>`;
     }).join('');
 
@@ -1827,7 +1958,7 @@ window.AnilApi = (function () {
     const todayOrders = ORDERS.filter((o) => o.date === today);
     $('statToday').textContent = todayOrders.length;
     $('statPending').textContent = ORDERS.filter((o) => !o.synced).length;
-    $('statValue').textContent = '₹' + Math.round(todayOrders.reduce((s, o) => s + Number(o.totalAmount || 0), 0));
+    $('statValue').innerHTML = rsInt(Math.round(todayOrders.reduce((s, o) => s + Number(o.totalAmount || 0), 0)));
     $('savedCountLabel').textContent = ORDERS.length;
 
     const filtered = ORDERS.filter((o) => {
@@ -1856,10 +1987,10 @@ window.AnilApi = (function () {
             </div>
             <div class="order-sub"><span class="mono">${escapeHtml(o.id)}</span> · ${escapeHtml(o.date)} ${escapeHtml(o.time)} ${o.route ? '· ' + escapeHtml(o.route) : ''}</div>
           </div>
-          <div style="font-size:17px;font-weight:800;color:var(--brand-green-dark)">₹${Number(o.totalAmount || 0).toFixed(2)}</div>
+          <div style="font-size:17px;font-weight:800;color:var(--brand-green-dark)">${rs(o.totalAmount)}</div>
         </div>
         <div class="order-card-body">
-          ${o.items.map((it) => `<div>• <b>${escapeHtml(it.ItemName)}</b> — ${it.Qty} ${escapeHtml(it.Pack || 'PC')} @ ₹${it.Rate}</div>`).join('')}
+          ${o.items.map((it) => `<div>• <b>${escapeHtml(it.ItemName)}</b> — ${it.Qty} ${escapeHtml(it.Pack || 'PC')} @ ${rs(it.Rate)}</div>`).join('')}
           ${o.invoiceNo ? `<div style="margin-top:6px;color:#166534;font-weight:800">🧾 Invoice: <span class="mono">${escapeHtml(o.invoiceNo)}</span></div>` : ''}
           ${o.transportNote ? `<div style="color:#0369a1;font-weight:700">🚚 Dispatch / LR: ${escapeHtml(o.transportNote)}</div>` : ''}
           ${o.remarks ? `<div style="color:#92400e;font-weight:700">💬 Office: ${escapeHtml(o.remarks)}</div>` : ''}
@@ -2076,13 +2207,19 @@ window.AnilApi = (function () {
       const sys = Number(it.Stock) || 0;
       const diff = counted !== undefined ? (counted - sys) : 0;
       return `<li class="item-card ${counted !== undefined ? 'modified' : ''}" data-audit-key="${encodeURIComponent(it._key)}">
-        <div class="item-header">
+        <div class="item-main">
           <div class="item-name">${escapeHtml(it.ItemName)}</div>
-          <span class="badge-tag tag-count">${counted !== undefined ? `Count: ${counted} (${diff >= 0 ? '+' + diff : diff})` : 'Tap to Count'}</span>
+          <div class="item-meta-row">
+            <span class="mfg-pill">${escapeHtml(getMfgDisplay(it.MfgCode))}</span>
+            <span class="mono">${escapeHtml(it.Barcode || '-')}</span>
+          </div>
+          <div class="item-meta-row">
+            <span class="stk-pill ${sys > 0 ? 'stk-ok' : 'stk-zero'}">System Avail: ${sys}</span>
+          </div>
         </div>
-        <div class="item-details">
-          <div>Mfg: <span class="mfg-pill">${escapeHtml(it.MfgCode || '-')}</span> · <span class="mono">${escapeHtml(it.Barcode || '-')}</span></div>
-          <div>Avail Stock: <b>${sys}</b> · ₹ ${Number(it.SaleRate || 0).toFixed(2)}</div>
+        <div class="item-side">
+          <div class="item-rate-box">${rs(it.SaleRate)}</div>
+          <span class="badge-tag tag-count">${counted !== undefined ? `Count: ${counted} (${diff >= 0 ? '+' + diff : diff})` : 'Tap to Count'}</span>
         </div>
       </li>`;
     }).join('');
@@ -2233,17 +2370,17 @@ window.AnilApi = (function () {
     $('ownerKpiGrid').innerHTML = `
       <div class="owner-kpi-box">
         <small>Today's Booked</small>
-        <b>₹${Number(d.todayValue || 0).toLocaleString('en-IN')}</b>
+        <b>${rsInt(d.todayValue)}</b>
         <span>${d.todayOrders || 0} order(s) today</span>
       </div>
       <div class="owner-kpi-box">
         <small>Active Pipeline</small>
-        <b>₹${Number(d.pipelineValue || 0).toLocaleString('en-IN')}</b>
+        <b>${rsInt(d.pipelineValue)}</b>
         <span>New → Ready for Billing</span>
       </div>
       <div class="owner-kpi-box">
         <small>Billed / Dispatched</small>
-        <b>₹${Number(d.billedValue || 0).toLocaleString('en-IN')}</b>
+        <b>${rsInt(d.billedValue)}</b>
         <span>${(d.counts['Billed'] || 0) + (d.counts['Dispatched / Delivered'] || 0)} completed</span>
       </div>
       <div class="owner-kpi-box">
@@ -2262,8 +2399,22 @@ window.AnilApi = (function () {
       { key: 'Dispatched / Delivered', label: 'Dispatched / Delivered' },
       { key: 'Cancelled', label: 'Cancelled' }
     ];
-    const activeCount = ['New', 'Released', 'In Progress', 'Ready for Billing', 'Billed', 'Dispatched / Delivered']
-      .reduce((s, k) => s + (d.counts[k] || 0), 0);
+    if (d.mfgMap) saveMfgMap(d.mfgMap);
+    const stagePalette = {
+      'New': '#2563eb', 'Released': '#d97706', 'In Progress': '#ea580c',
+      'Ready for Billing': '#7c3aed', 'Billed': '#16a34a', 'Dispatched / Delivered': '#0d9488'
+    };
+    const activeStages = ['New', 'Released', 'In Progress', 'Ready for Billing', 'Billed', 'Dispatched / Delivered'];
+    const activeCount = activeStages.reduce((s, k) => s + (d.counts[k] || 0), 0);
+
+    if ($('ownerPipelineBar')) {
+      const denom = Math.max(1, activeCount);
+      $('ownerPipelineBar').innerHTML = activeStages.map((k) => {
+        const cnt = d.counts[k] || 0;
+        const pct = Math.round((cnt / denom) * 100);
+        return cnt > 0 ? `<div style="width:${pct}%;background:${stagePalette[k]}" title="${k}: ${cnt}"></div>` : '';
+      }).join('');
+    }
 
     $('ownerStageStrip').innerHTML = stages.map((st) => {
       const cnt = st.key === 'ACTIVE' ? activeCount : (d.counts[st.key] || 0);
@@ -2272,7 +2423,7 @@ window.AnilApi = (function () {
       return `<button type="button" class="stage-pill-card${act}" data-ostage="${escapeHtml(st.key)}">
         <b>${cnt}</b>
         <span>${escapeHtml(st.label)}</span>
-        <small>₹${Number(val).toLocaleString('en-IN')}</small>
+        <small>${rsInt(val)}</small>
       </button>`;
     }).join('');
 
@@ -2307,23 +2458,43 @@ window.AnilApi = (function () {
       return;
     }
 
+    const stepLabels = ['1.Booked', '2.Released', '3.Picking', '4.Billing', '5.Dispatched'];
     $('ownerOrdersContainer').innerHTML = filtered.map((o) => {
       const wf = o.status || 'New';
       const wfClass = 'wf-' + wf.replace(/[^a-zA-Z0-9]/g, '');
+      const stCfg = MOBILE_WF_STAGES[wf] || { step: 1, nextLabel: null };
+      const curStep = stCfg.step;
+      const stepperHtml = wf !== 'Cancelled' ? `
+        <div class="wf-stepper">
+          ${stepLabels.map((lbl, idx) => {
+            const sNum = idx + 1;
+            const cls = curStep > sNum ? 'done' : (curStep === sNum ? 'curr' : '');
+            return `<div class="wf-step ${cls}">${lbl}</div>`;
+          }).join('')}
+        </div>` : '';
+      const itemNotes = (o.items || []).filter((it) => String(it.ItemNarration || '').trim());
       return `<div class="order-card synced" data-own-ord="${escapeHtml(o.id)}" style="cursor:pointer">
         <div class="order-card-header">
           <div>
             <div class="party-name">${escapeHtml(o.partyName)} <span class="wf-badge ${wfClass}">${escapeHtml(wf)}</span></div>
             <div class="order-sub"><span class="mono">${escapeHtml(o.id)}</span> · ${escapeHtml(o.date)} · Rep: <b>${escapeHtml(o.salesman)}</b></div>
           </div>
-          <div style="font-size:16.5px;font-weight:800;color:var(--brand-green-dark)">₹${Number(o.total || 0).toLocaleString('en-IN')}</div>
+          <div style="font-size:16.5px;font-weight:800;color:var(--brand-green-dark)">${rsInt(o.total)}</div>
         </div>
         <div class="order-card-body" style="padding:9px 14px;font-size:13.5px">
-          <div><b>${(o.items || []).length}</b> item(s) ${o.route ? '· Route: <b>' + escapeHtml(o.route) + '</b>' : ''}</div>
-          ${o.assignedTo ? `<div>👷 Assigned: <b>${escapeHtml(o.assignedTo)}</b> (${escapeHtml(o.priority || 'Normal')})</div>` : ''}
-          ${o.invoiceNo ? `<div style="color:#166534;font-weight:700">🧾 Invoice: <span class="mono">${escapeHtml(o.invoiceNo)}</span></div>` : ''}
+          ${stepperHtml}
+          <div style="margin-top:4px"><b>${(o.items || []).length}</b> item(s) ${o.route ? '· Route: <b>' + escapeHtml(o.route) + '</b>' : ''}</div>
+          ${o.assignedTo ? `<div>👷 Picker: <b>${escapeHtml(o.assignedTo)}</b> (${escapeHtml(o.priority || 'Normal')})</div>` : ''}
+          ${o.narration ? `<div style="background:#fef9c3;color:#854d0e;padding:3px 7px;border-radius:6px;margin-top:4px;font-weight:700">📝 ${escapeHtml(o.narration)}</div>` : ''}
+          ${itemNotes.length ? `<div style="color:#1e40af;font-size:12.5px;margin-top:3px">${itemNotes.map((it) => `<div>📝 <b>${escapeHtml(it.ItemName)}:</b> ${escapeHtml(it.ItemNarration)}</div>`).join('')}</div>` : ''}
+          ${o.invoiceNo ? `<div style="color:#166534;font-weight:700;margin-top:3px">🧾 Invoice: <span class="mono">${escapeHtml(o.invoiceNo)}</span></div>` : ''}
           ${o.transportNote ? `<div style="color:#0369a1;font-weight:700">🚚 Dispatch/LR: ${escapeHtml(o.transportNote)}</div>` : ''}
         </div>
+        ${stCfg.nextLabel ? `
+          <div class="order-card-footer" style="justify-content:space-between;align-items:center">
+            <span style="font-size:12px;color:var(--text-muted);font-weight:700">Tap card for details</span>
+            <button type="button" class="btn-sm btn-green" style="min-height:36px;padding:6px 12px;font-size:13px" data-own-fwd="${escapeHtml(o.id)}">⏭️ ${escapeHtml(stCfg.nextLabel)}</button>
+          </div>` : ''}
       </div>`;
     }).join('');
   }
@@ -2381,7 +2552,7 @@ window.AnilApi = (function () {
         </div>
         <div class="pi-mobile-bar"><div class="pi-mobile-fill" style="width:${sc}%;background:${col}"></div></div>
         <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:12.5px;color:#334155">
-          <span>Sales: <b>${e.ordersBooked}</b> (₹${Number(e.salesValue || 0).toLocaleString('en-IN')})</span>
+          <span>Sales: <b>${e.ordersBooked}</b> (${rsInt(e.salesValue)})</span>
           <span>Tasks: <b>${e.tasksCompleted}/${e.tasksAssigned}</b></span>
           <span>Avg Time: <b>${e.avgCycleMins != null ? e.avgCycleMins + 'm' : '—'}</b></span>
           <span>SLA: <b>${e.slaPercent != null ? e.slaPercent + '%' : '—'}</b></span>
@@ -2417,7 +2588,7 @@ window.AnilApi = (function () {
     ACTIVE_OWNER_ORDER = o;
 
     $('ownOrdModalTitle').textContent = `${o.id} — ${o.partyName}`;
-    $('ownOrdModalMeta').innerHTML = `Status: <b>${escapeHtml(o.status)}</b> · Route: <b>${escapeHtml(o.route || '-')}</b> · Salesman: <b>${escapeHtml(o.salesman)}</b><br>Total: <b>₹${Number(o.total || 0).toFixed(2)}</b>${o.assignedTo ? ' · Picker: <b>' + escapeHtml(o.assignedTo) + '</b>' : ''}`;
+    $('ownOrdModalMeta').innerHTML = `Status: <b>${escapeHtml(o.status)}</b> · Route: <b>${escapeHtml(o.route || '-')}</b> · Salesman: <b>${escapeHtml(o.salesman)}</b><br>Total: <b>${rs(o.total)}</b>${o.assignedTo ? ' · Picker: <b>' + escapeHtml(o.assignedTo) + '</b>' : ''}`;
 
     const tiMap = {};
     (o.taskItems || []).forEach((t) => { tiMap[Number(t.itemNo)] = t; });
@@ -2427,7 +2598,7 @@ window.AnilApi = (function () {
       const shrt = ti.shortQty || 0;
       return `<div style="padding:5px 0;border-bottom:1px dashed #dcebe2">
         <b>${idx + 1}. ${escapeHtml(it.ItemName)}</b><br>
-        <span style="font-size:12.5px;color:var(--text-muted)">Ord: <b>${it.Qty}</b> · Picked: <b>${ful}</b>${shrt > 0 ? ` · <span style="color:#dc2626">Short: ${shrt}</span>` : ''} · ₹${it.Rate}</span>
+        <span style="font-size:12.5px;color:var(--text-muted)">Ord: <b>${it.Qty}</b> · Picked: <b>${ful}</b>${shrt > 0 ? ` · <span style="color:#dc2626">Short: ${shrt}</span>` : ''} · ${rs(it.Rate)}</span>
       </div>`;
     }).join('');
 
@@ -2604,7 +2775,33 @@ window.AnilApi = (function () {
       });
     };
     $('ownerOrderSearch').oninput = renderOwnerOrdersList;
-    $('ownerOrdersContainer').onclick = (e) => {
+    $('ownerOrdersContainer').onclick = async (e) => {
+      const fwdBtn = e.target.closest('[data-own-fwd]');
+      if (fwdBtn) {
+        e.stopPropagation();
+        const oid = fwdBtn.dataset.ownFwd;
+        const ord = OWNER_DATA && (OWNER_DATA.orders || []).find((x) => x.id === oid);
+        if (!ord) return;
+        if (ord.status === 'Released') {
+          const res = await AnilApi.setStatus([oid], 'In Progress', { remarks: 'Started from Owner Live' });
+          if (!res.ok) { toast(res.message, true); return; }
+          toast(`⏭️ ${oid} moved to In Progress`);
+          loadOwnerMobileDashboard(true);
+          return;
+        }
+        if (ord.status === 'In Progress') {
+          const itemsPayload = (ord.items || []).map((it, idx) => ({
+            itemNo: it.ItemNo || (idx + 1), resultStatus: 'Done', fulfilledQty: it.Qty, reason: ''
+          }));
+          const res = await AnilApi.taskComplete(oid, itemsPayload, 'TSK-' + oid, 'Completed from Owner Live');
+          if (!res.ok) { toast(res.message, true); return; }
+          toast(`⏭️ ${oid} moved to Ready for Billing`);
+          loadOwnerMobileDashboard(true);
+          return;
+        }
+        openOwnerOrderModal(oid);
+        return;
+      }
       const card = e.target.closest('[data-own-ord]');
       if (card) openOwnerOrderModal(card.dataset.ownOrd);
     };
@@ -2792,7 +2989,7 @@ window.AnilApi = (function () {
       $('orderModalItemName').textContent = it.ItemName;
       $('orderModalStock').textContent = it.Stock;
       $('orderModalPack').textContent = it.Pack || 'PC';
-      $('orderModalMfgCode').textContent = it.MfgCode || '-';
+      $('orderModalMfgCode').textContent = getMfgDisplay(it.MfgCode);
       $('orderModalBarcode').textContent = it.Barcode || '-';
       $('orderModalQty').value = existing ? existing.Qty : '';
       $('orderModalRate').value = existing ? existing.Rate : (it.SaleRate || 0);
@@ -2869,8 +3066,8 @@ window.AnilApi = (function () {
       $('revDate').textContent = todayStr();
       $('revItemsList').innerHTML = lines.map((l) => `
         <div class="rev-line">
-          <div><b>${escapeHtml(l.ItemName)}</b><div class="meta">${l.Qty} ${escapeHtml(l.Pack)} × ₹${l.Rate}</div></div>
-          <div class="amt">₹${Number(l.Amount).toFixed(2)}</div>
+          <div><b>${escapeHtml(l.ItemName)}</b><div class="meta">${l.Qty} ${escapeHtml(l.Pack)} × ${rs(l.Rate)}</div></div>
+          <div class="amt">${rs(l.Amount)}</div>
         </div>`).join('');
       $('revQty').textContent = lines.reduce((s, x) => s + Number(x.Qty), 0);
       $('revTotalAmount').textContent = lines.reduce((s, x) => s + Number(x.Amount), 0).toFixed(2);
@@ -3065,6 +3262,46 @@ window.AnilApi = (function () {
       renderAuditList();
       toast('Stock count saved ✓');
     };
+    $('btnUploadAuditCloud').onclick = async () => {
+      const diffKeys = Object.keys(AUDIT_COUNTS);
+      if (!diffKeys.length) { toast('No counted stock items to upload yet.', true); return; }
+      const payload = diffKeys.map((k) => {
+        const it = ITEMS.find((x) => x._key === k) || { ItemName: k, Stock: 0, MfgCode: '', Barcode: '' };
+        const sys = Number(it.Stock) || 0;
+        const phy = Number(AUDIT_COUNTS[k]) || 0;
+        return {
+          ItemName: it.ItemName,
+          MfgCode: it.MfgCode || '',
+          CompanyName: getMfgDisplay(it.MfgCode),
+          Barcode: it.Barcode || '',
+          SystemAvail: sys,
+          PhysicalCount: phy,
+          Difference: Number((phy - sys).toFixed(2))
+        };
+      }).filter((x) => x.Difference !== 0);
+
+      if (!payload.length) {
+        toast('All counted items match system stock (0 differences).', true);
+        return;
+      }
+      if (!navigator.onLine) {
+        toast('Internet connection required to upload stock differences to dashboard.', true);
+        return;
+      }
+      $('btnUploadAuditCloud').disabled = true;
+      $('btnUploadAuditCloud').textContent = '⏳ Uploading…';
+      try {
+        const res = await AnilApi.uploadStockAudit(payload);
+        if (!res.ok) { toast(res.message || 'Upload failed', true); return; }
+        toast(`✅ Uploaded ${res.uploaded || payload.length} stock variance(s) to Office Dashboard!`);
+      } catch (err) {
+        toast(err.message, true);
+      } finally {
+        $('btnUploadAuditCloud').disabled = false;
+        $('btnUploadAuditCloud').textContent = '☁️ Upload to Dashboard';
+      }
+    };
+
     $('btnExportAudit').onclick = async () => {
       const diffKeys = Object.keys(AUDIT_COUNTS);
       if (!diffKeys.length) { toast('No audit counts recorded yet', true); return; }
@@ -3098,7 +3335,7 @@ window.AnilApi = (function () {
 
     $('btnBackup').onclick = () => {
       const blob = new Blob([JSON.stringify({
-        version: '09.1',
+        version: '10.1',
         exportedAt: new Date().toISOString(),
         orders: ORDERS,
         auditCounts: AUDIT_COUNTS
