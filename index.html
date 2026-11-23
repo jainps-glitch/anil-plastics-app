@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Anil Plastics">
-<title>Anil Plastics - Order &amp; Tasks (Ver 11.1)</title>
+<title>Anil Plastics - Order &amp; Tasks (Ver 12.0)</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -411,7 +411,7 @@
   }
   .company-scope-banner.show { display: block; }
 
-  /* Mobile Physical Inventory Audit Module CSS (Ver 11.1) */
+  /* Mobile Physical Inventory Audit Module CSS (Ver 12.0) */
   .aud-sync-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 8px 0; }
   .aud-sync-box { background: #fff; border: 1.5px solid var(--line); border-radius: 9px; padding: 7px 6px; text-align: center; }
   .aud-sync-box b { display: block; font-size: 16px; font-weight: 800; color: var(--brand-green-dark); }
@@ -461,7 +461,7 @@
 <div class="app-top">
   <div class="brand-header">
     <div class="brand-title-row">
-      <div class="brand-wordmark">ANIL PLASTICS <span class="brand-badge">Ver 11.1</span></div>
+      <div class="brand-wordmark">ANIL PLASTICS <span class="brand-badge">Ver 12.0</span></div>
       <button class="btn-upload-header" id="btnTopSyncStock">🔄 Stock</button>
     </div>
     <div class="salesman-bar">
@@ -916,7 +916,7 @@
   </div>
 
   <div class="settings-card">
-    <div class="settings-title">Daily Stock Feed (Available = Stock − Reserved)</div>
+    <div class="settings-title">Daily Stock Feed (Available = Saifee Stock − Post-Upload Orders)</div>
     <div class="hint" style="margin-bottom:8px">Status: <b id="stockStatus">Not synced yet</b></div>
     <button class="btn-sm btn-green btn-wide" id="btnUpdateStock">🔄 Download Latest Stock</button>
     <label style="display:flex;align-items:center;gap:10px;margin:12px 0 0;font-size:14.5px;font-weight:700">
@@ -940,12 +940,14 @@
       <button class="btn-sm btn-light" id="btnRestore">📂 Restore JSON</button>
     </div>
     <button class="btn-sm btn-blue btn-wide" style="margin-top:10px;display:none" id="btnInstallApp">📲 Install App on Home Screen</button>
+    <button class="btn-sm btn-light btn-wide" style="margin-top:10px" id="btnRunMobDiagnostics">🩺 Run System &amp; Storage Diagnostics</button>
+    <div id="mobDiagOutput" style="display:none;margin-top:10px;padding:10px;background:#f4faf7;border:1.5px solid #a8d0ba;border-radius:10px;font-size:12.5px;line-height:1.55"></div>
     <div class="danger-zone" style="margin-top:14px">
       <div style="font-size:14px;font-weight:800;color:var(--danger);margin-bottom:6px">⚠️ Reset Local App Data</div>
       <button class="btn-sm btn-danger-soft btn-wide" id="btnReset">🗑️ Clear All Phone Data</button>
     </div>
   </div>
-  <div class="app-footer">Anil Plastics Workflow System · Ver 11.1 PWA</div>
+  <div class="app-footer">Anil Plastics Workflow System · Ver 12.0 PWA</div>
 </section>
 
 <input type="file" id="fileInput" class="hidden-input" accept=".xlsx,.xls,.csv">
@@ -1181,7 +1183,7 @@
 
 <script>
 /**
- * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v11.1
+ * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v12.0
  * Guarantees instant, non-hanging startup on Android Chrome, WebViews, file://, content://, and HTTPS.
  */
 window.AnilDB = (function () {
@@ -1189,10 +1191,20 @@ window.AnilDB = (function () {
   const DB_VER = 2;
   let dbPromise = null;
   let idbDisabled = false;
+  let lastQuotaWarning = '';
   const MEM_FALLBACK = { items: [], orders: [], tasks: [], taskQueue: [], pdfs: [], meta: [], auditTasks: [], auditItems: [], auditCounts: [] };
 
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-  function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function lsSet(k, v) {
+    try {
+      localStorage.setItem(k, v);
+      lastQuotaWarning = '';
+      return true;
+    } catch (e) {
+      lastQuotaWarning = 'Phone browser storage quota full (' + (e && e.message ? e.message : 'QuotaExceeded') + ').';
+      return false;
+    }
+  }
   function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
 
   function lsStoreKey(store) { return 'ap_ls_store_' + store; }
@@ -1203,7 +1215,21 @@ window.AnilDB = (function () {
     if (!raw) return MEM_FALLBACK[store] || [];
     try {
       const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr : [];
+      if (!Array.isArray(arr)) return MEM_FALLBACK[store] || [];
+      if (store === 'items' && arr.length && Array.isArray(arr[0])) {
+        return arr.map((t) => ({
+          ItemName: t[0] || '',
+          MfgCode: t[1] || 'UNKNOWN',
+          Barcode: t[2] || '',
+          Pack: t[3] || 'PC',
+          RawStock: Number(t[4]) || 0,
+          Reserved: Number(t[5]) || 0,
+          Stock: Number(t[6]) || 0,
+          SaleRate: Number(t[7]) || 0,
+          _key: t[8] || makeItemKey({ Barcode: t[2], ItemName: t[0] })
+        }));
+      }
+      return arr;
     } catch (e) {
       return MEM_FALLBACK[store] || [];
     }
@@ -1212,19 +1238,18 @@ window.AnilDB = (function () {
   function lsWriteStore(store, arr) {
     MEM_FALLBACK[store] = arr;
     if (store === 'pdfs') return true;
-    // Strip search helper before saving to localStorage to stay compact
     const compact = store === 'items'
-      ? arr.map((it) => ({
-          _key: it._key,
-          ItemName: it.ItemName,
-          MfgCode: it.MfgCode,
-          Barcode: it.Barcode,
-          Pack: it.Pack,
-          RawStock: it.RawStock,
-          Reserved: it.Reserved,
-          Stock: it.Stock,
-          SaleRate: it.SaleRate
-        }))
+      ? arr.map((it) => [
+          it.ItemName || '',
+          it.MfgCode || '',
+          it.Barcode || '',
+          it.Pack || 'PC',
+          Number(it.RawStock) || 0,
+          Number(it.Reserved) || 0,
+          Number(it.Stock) || 0,
+          Number(it.SaleRate) || 0,
+          it._key || ''
+        ])
       : arr;
     return lsSet(lsStoreKey(store), JSON.stringify(compact));
   }
@@ -1252,7 +1277,7 @@ window.AnilDB = (function () {
           idbDisabled = true;
           reject(new Error('IndexedDB open timeout'));
         }
-      }, 1500);
+      }, 5000);
 
       try {
         const req = indexedDB.open(DB_NAME, DB_VER);
@@ -1317,7 +1342,6 @@ window.AnilDB = (function () {
   }
 
   async function putMany(store, arr, clearFirst) {
-    // Always mirror small stores or fallback when IDB is disabled
     if (store !== 'items' || idbDisabled) {
       const kf = keyFieldOf(store);
       let base = clearFirst ? [] : lsReadStore(store);
@@ -1377,6 +1401,7 @@ window.AnilDB = (function () {
       MEM_FALLBACK[st] = [];
       lsDel(lsStoreKey(st));
     });
+    lastQuotaWarning = '';
     try {
       const db = await open();
       return await new Promise((resolve, reject) => {
@@ -1399,13 +1424,11 @@ window.AnilDB = (function () {
   async function migrateFromLegacyLocalStorage() {
     if (lsGet('ap_idb_migrated_v87')) return;
 
-    // Migrate Ver 06 & Ver 07 URLs
     const oldUrl = lsGet('ap_webhook_v6') || lsGet('anil_webhook_url') || lsGet('webhookUrl');
     if (oldUrl && !lsGet('ap_webhook_url')) {
       lsSet('ap_webhook_url', oldUrl.trim());
     }
 
-    // Migrate Ver 06 & Ver 07 items (including Ver 06 'master_items_data')
     const itemKeys = ['master_items_data', 'ap_items_v6', 'ap_items', 'anil_items', 'masterItems'];
     for (const k of itemKeys) {
       const raw = lsGet(k);
@@ -1431,7 +1454,6 @@ window.AnilDB = (function () {
       }
     }
 
-    // Migrate Ver 06 & Ver 07 orders (including Ver 06 'booked_orders_data')
     const orderKeys = ['booked_orders_data', 'ap_orders_v6', 'ap_orders', 'anil_orders', 'savedOrders'];
     for (const k of orderKeys) {
       const raw = lsGet(k);
@@ -1449,17 +1471,26 @@ window.AnilDB = (function () {
     lsSet('ap_idb_migrated_v87', '1');
   }
 
+  async function getDiagnostics() {
+    const stores = ['items', 'orders', 'tasks', 'taskQueue', 'auditTasks', 'auditItems', 'auditCounts'];
+    const counts = {};
+    for (const s of stores) {
+      try { counts[s] = (await getAll(s)).length; } catch (e) { counts[s] = -1; }
+    }
+    return {
+      engine: idbDisabled ? 'localStorage Fallback' : 'IndexedDB (Primary)',
+      quotaWarning: lastQuotaWarning || 'OK',
+      counts
+    };
+  }
+
   return {
-    open, getAll, putMany, putOne, deleteOne, clearAll, makeItemKey, migrateFromLegacyLocalStorage
+    open, getAll, putMany, putOne, deleteOne, clearAll, makeItemKey, migrateFromLegacyLocalStorage, getDiagnostics
   };
 })();
 
 </script>
 <script>
-/**
- * Anil Plastics API Adapter (v11.1)
- * Self-healing URL discovery (?url= param, ap_webhook_url, anil_webhook_url) & safe JSON parsing.
- */
 window.AnilApi = (function () {
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
@@ -1581,14 +1612,15 @@ window.AnilApi = (function () {
     createCustomTask: (payload) => post('createCustomTask', payload),
     getMfgMaster: () => post('getMfgMaster', {}),
     uploadStockAudit: (items) => post('uploadStockAudit', { items: items || [] }),
-    // Physical Inventory Audit Module Endpoints (Ver 11.1)
+    // Physical Inventory Audit Module Endpoints (Ver 12.0)
     auditMyPackage: (sessionId) => post('auditMyPackage', { sessionId: sessionId || '' }),
     auditSyncCounts: (sessionId, deviceBatchID, counts) => post('auditSyncCounts', { sessionId: sessionId || '', deviceBatchID, counts: counts || [] }),
     auditTaskStatus: (taskId, status) => post('auditTaskStatus', { taskId, status }),
     auditPulse: (sessionId) => post('auditPulse', { sessionId: sessionId || '' }),
     auditVerifyCount: (payload) => post('auditVerifyCount', payload),
     auditSaveConversion: (payload) => post('auditSaveConversion', payload),
-    auditResolveException: (exceptionId, resolutionNote) => post('auditResolveException', { exceptionId, resolutionNote })
+    auditResolveException: (exceptionId, resolutionNote) => post('auditResolveException', { exceptionId, resolutionNote }),
+    systemDiagnostics: () => post('systemDiagnostics', {})
   };
 })();
 
@@ -2163,29 +2195,43 @@ window.AnilApi = (function () {
       }
 
       const ids = ORDERS.filter((o) => o.synced).slice(0, 150).map((o) => o.id);
-      if (ids.length) {
-        const stRes = await AnilApi.myOrders(ids, '');
-        if (stRes && stRes.ok && stRes.user) {
-          const curCfg = AnilApi.getConfig();
-          const prevRoles = JSON.stringify((curCfg.user && curCfg.user.roles) || []);
-          const nextRoles = JSON.stringify(stRes.user.roles || []);
-          if (prevRoles !== nextRoles) {
-            AnilApi.setSession(Object.assign({}, curCfg.user, stRes.user));
-            applyUserRoleUI();
+      const stRes = await AnilApi.myOrders(ids, '');
+      if (stRes && stRes.ok && stRes.user) {
+        const curCfg = AnilApi.getConfig();
+        const prevRoles = JSON.stringify((curCfg.user && curCfg.user.roles) || []);
+        const nextRoles = JSON.stringify(stRes.user.roles || []);
+        if (prevRoles !== nextRoles) {
+          AnilApi.setSession(Object.assign({}, curCfg.user, stRes.user));
+          applyUserRoleUI();
+        }
+      }
+      if (stRes && stRes.ok && stRes.statuses) {
+        for (const o of ORDERS) {
+          const info = stRes.statuses[o.id];
+          if (info && info.status) {
+            o.status = info.status;
+            o.remarks = info.remarks || '';
+            o.assignedTo = info.assignedTo || '';
+            o.invoiceNo = info.invoiceNo || '';
+            o.transportNote = info.transportNote || '';
+            await AnilDB.putOne('orders', o);
           }
         }
-        if (stRes && stRes.ok && stRes.statuses) {
-          for (const o of ORDERS) {
-            const info = stRes.statuses[o.id];
-            if (info && info.status) {
-              o.status = info.status;
-              o.remarks = info.remarks || '';
-              o.assignedTo = info.assignedTo || '';
-              o.invoiceNo = info.invoiceNo || '';
-              o.transportNote = info.transportNote || '';
-              await AnilDB.putOne('orders', o);
-            }
+      }
+      if (stRes && stRes.ok && Array.isArray(stRes.newOrders) && stRes.newOrders.length) {
+        const existingSet = new Set(ORDERS.map((x) => x.id));
+        let addedSplitCnt = 0;
+        for (const no of stRes.newOrders) {
+          if (no && no.id && !existingSet.has(no.id)) {
+            ORDERS.unshift(no);
+            existingSet.add(no.id);
+            await AnilDB.putOne('orders', no);
+            addedSplitCnt++;
           }
+        }
+        if (addedSplitCnt > 0) {
+          ORDERS.sort((a, b) => String(b.id).localeCompare(String(a.id)));
+          refreshPartyAutocomplete();
         }
       }
 
@@ -3580,6 +3626,29 @@ window.AnilApi = (function () {
       toast('Server URL saved ✓');
     };
     $('btnLogout').onclick = () => performPhoneLogout(false);
+    $('btnRunMobDiagnostics').onclick = async () => {
+      const box = $('mobDiagOutput');
+      box.style.display = 'block';
+      box.innerHTML = '⏳ Running diagnostics…';
+      try {
+        const dbDiag = await AnilDB.getDiagnostics();
+        let srvHtml = 'Offline (cached mode)';
+        if (navigator.onLine && AnilApi.getConfig().token) {
+          const sRes = await AnilApi.systemDiagnostics();
+          if (sRes && sRes.ok) {
+            srvHtml = `Server: <b>Ver ${escapeHtml(sRes.version)}</b> · Sheet: <b>${escapeHtml(sRes.spreadsheetName)}</b><br>` +
+              `MasterStock SKUs: <b>${sRes.stock.masterStockRows}</b> · Baseline Orders: <b>${sRes.stock.baselineOrdersCount}</b><br>` +
+              `Active Audit: <b>${escapeHtml(sRes.counts.activeAuditSession)}</b>`;
+          }
+        }
+        box.innerHTML = `
+          <div><b>📱 Phone Storage Engine:</b> ${escapeHtml(dbDiag.engine)} (${escapeHtml(dbDiag.quotaWarning)})</div>
+          <div><b>📦 Cached on Phone:</b> ${dbDiag.counts.items} Stock SKUs · ${dbDiag.counts.orders} Orders · ${dbDiag.counts.auditItems} Audit SKUs · ${dbDiag.counts.auditCounts} Audit Counts</div>
+          <div style="margin-top:4px;border-top:1px dashed #a8d0ba;padding-top:4px">${srvHtml}</div>`;
+      } catch (err) {
+        box.innerHTML = '<span style="color:#b91c1c">Diagnostic error: ' + escapeHtml(err.message) + '</span>';
+      }
+    };
 
     $('settingsStockAuto').checked = localStorage.getItem('ap_auto_stock') !== '0';
     $('settingsStockAuto').onchange = () => {
@@ -3900,7 +3969,15 @@ window.AnilApi = (function () {
 
     const html = slice.map((it) => {
       const cntQty = countedByItemKey[it.itemKey] || 0;
-      const isMan = it.conversionStatus === 'Manual Entry Required';
+      const cSt = it.conversionStatus || 'Manual Entry Required';
+      const pillCls = cSt === 'Verified' ? 'conv-Verified' : (cSt === 'Floor Manual Entry' ? 'conv-FloorManualEntry' : (cSt === 'Pending Verification' ? 'conv-PendingVerification' : 'conv-ManualEntryRequired'));
+      const pillTxt = cSt === 'Manual Entry Required'
+        ? '⚠️ Unknown Pack'
+        : (cSt === 'Pending Verification'
+            ? `⏳ Pending Verify (1 Bdl = ${it.bundleFactor} ${escapeHtml(it.baseUnit)})`
+            : (cSt === 'Floor Manual Entry'
+                ? `📘 Floor: 1 Bdl = ${it.bundleFactor} ${escapeHtml(it.baseUnit)}`
+                : `✓ 1 Bdl = ${it.bundleFactor} ${escapeHtml(it.baseUnit)}`));
       return `<li class="item-card ${cntQty > 0 ? 'in-cart' : ''}" data-aud-item="${encodeURIComponent(it.itemKey)}">
         <div class="item-main">
           <div class="item-name">${escapeHtml(it.itemName)}</div>
@@ -3909,9 +3986,7 @@ window.AnilApi = (function () {
             <span class="mono">${escapeHtml(it.barcode || 'No Barcode')}</span>
           </div>
           <div class="item-meta-row">
-            <span class="conv-pill ${isMan ? 'conv-ManualEntryRequired' : 'conv-Verified'}">
-              ${isMan ? '⚠️ Unknown Pack' : `1 Bdl = ${it.bundleFactor} ${escapeHtml(it.baseUnit)}`}
-            </span>
+            <span class="conv-pill ${pillCls}">${pillTxt}</span>
           </div>
         </div>
         <div class="item-side">
@@ -3979,6 +4054,7 @@ window.AnilApi = (function () {
           </div>
           <div class="order-card-footer">
             <button type="button" class="btn-sm btn-green" style="min-height:36px;padding:6px 12px" data-msup-act="Approved" data-msup-cid="${escapeHtml(c.countId)}">✅ Approve</button>
+            <button type="button" class="btn-sm btn-blue" style="min-height:36px;padding:6px 12px" data-msup-act="Quantity Adjusted" data-msup-qty="${c.totalBaseQty}" data-msup-cid="${escapeHtml(c.countId)}">✏️ Adjust Qty</button>
             <button type="button" class="btn-sm btn-amber" style="min-height:36px;padding:6px 12px" data-msup-act="Recount Assigned" data-msup-cid="${escapeHtml(c.countId)}">🔄 Recount</button>
           </div>
         </div>`).join('');
@@ -4013,12 +4089,26 @@ window.AnilApi = (function () {
       if (!btn) return;
       const cid = btn.dataset.msupCid;
       const act = btn.dataset.msupAct;
-      const reason = act === 'Recount Assigned' ? (prompt('Reason for recount:', 'Please recount physical stock') || '') : 'Approved on floor';
-      if (act === 'Recount Assigned' && !reason) return;
+      let payload = { countIds: [cid], verifyAction: act, reason: 'Approved on floor' };
+      if (act === 'Quantity Adjusted') {
+        const curQ = btn.dataset.msupQty || '0';
+        const newQStr = prompt(`Enter verified physical total pieces (current: ${curQ}):`, curQ);
+        if (newQStr === null) return;
+        const newQ = parseFloat(newQStr);
+        if (isNaN(newQ) || newQ < 0) { toast('Enter a valid quantity >= 0', true); return; }
+        const rsn = prompt('Reason for quantity adjustment:', `Adjusted from ${curQ} to ${newQ} by Supervisor`);
+        if (!rsn) return;
+        payload.newTotalQty = newQ;
+        payload.reason = rsn;
+      } else if (act === 'Recount Assigned') {
+        const reason = prompt('Reason for recount:', 'Please recount physical stock') || '';
+        if (!reason) return;
+        payload.reason = reason;
+      }
       btn.disabled = true;
-      const res = await AnilApi.auditVerifyCount({ countIds: [cid], verifyAction: act, reason });
+      const res = await AnilApi.auditVerifyCount(payload);
       if (!res.ok) { toast(res.message, true); btn.disabled = false; return; }
-      toast(act === 'Approved' ? '✅ Approved' : '🔄 Recount assigned');
+      toast(act === 'Approved' ? '✅ Approved' : (act === 'Quantity Adjusted' ? '✏️ Quantity adjusted & approved' : '🔄 Recount assigned'));
       renderMobileSupervisorVerify();
     };
 
@@ -4079,10 +4169,9 @@ window.AnilApi = (function () {
       $('audCntLocBadge').textContent = ACTIVE_AUD_TASK.locationLabel;
       $('audCntMfg').textContent = it.companyName;
       $('audCntBarcode').textContent = it.barcode || 'No Barcode';
-      const isMan = it.conversionStatus === 'Manual Entry Required';
-      const isFloorMan = it.conversionStatus === 'Floor Manual Entry';
-      $('audCntConvBadge').textContent = it.conversionStatus;
-      $('audCntConvBadge').className = 'conv-pill ' + (isMan ? 'conv-ManualEntryRequired' : (isFloorMan ? 'conv-FloorManualEntry' : 'conv-Verified'));
+      const cStM = it.conversionStatus || 'Manual Entry Required';
+      $('audCntConvBadge').textContent = cStM;
+      $('audCntConvBadge').className = 'conv-pill ' + (cStM === 'Verified' ? 'conv-Verified' : (cStM === 'Floor Manual Entry' ? 'conv-FloorManualEntry' : (cStM === 'Pending Verification' ? 'conv-PendingVerification' : 'conv-ManualEntryRequired')));
       $('audCntUnitLabel').textContent = `Unit: ${it.baseUnit || 'PC'}`;
       $('audInpBundleFactor').value = Number(it.bundleFactor) || 1;
       $('audInpInnerFactor').value = Number(it.innerFactor) || 1;

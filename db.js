@@ -1,16 +1,28 @@
 /**
- * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v11.1
- * Guarantees instant, non-hanging startup on Android Chrome, WebViews, file://, content://, and HTTPS.
+ * Anil Plastics Hybrid Storage Engine (IndexedDB + Compact localStorage Fallback) v12.0
+ * - 5000ms IndexedDB startup tolerance for budget Android devices with 15,000+ SKUs
+ * - Compact tuple serialization if localStorage fallback is ever triggered
+ * - Built-in storage health & diagnostics reporter
  */
 window.AnilDB = (function () {
   const DB_NAME = 'AnilPlasticsDB_v8';
   const DB_VER = 2;
   let dbPromise = null;
   let idbDisabled = false;
+  let lastQuotaWarning = '';
   const MEM_FALLBACK = { items: [], orders: [], tasks: [], taskQueue: [], pdfs: [], meta: [], auditTasks: [], auditItems: [], auditCounts: [] };
 
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-  function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function lsSet(k, v) {
+    try {
+      localStorage.setItem(k, v);
+      lastQuotaWarning = '';
+      return true;
+    } catch (e) {
+      lastQuotaWarning = 'Phone browser storage quota full (' + (e && e.message ? e.message : 'QuotaExceeded') + ').';
+      return false;
+    }
+  }
   function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
 
   function lsStoreKey(store) { return 'ap_ls_store_' + store; }
@@ -21,7 +33,21 @@ window.AnilDB = (function () {
     if (!raw) return MEM_FALLBACK[store] || [];
     try {
       const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr : [];
+      if (!Array.isArray(arr)) return MEM_FALLBACK[store] || [];
+      if (store === 'items' && arr.length && Array.isArray(arr[0])) {
+        return arr.map((t) => ({
+          ItemName: t[0] || '',
+          MfgCode: t[1] || 'UNKNOWN',
+          Barcode: t[2] || '',
+          Pack: t[3] || 'PC',
+          RawStock: Number(t[4]) || 0,
+          Reserved: Number(t[5]) || 0,
+          Stock: Number(t[6]) || 0,
+          SaleRate: Number(t[7]) || 0,
+          _key: t[8] || makeItemKey({ Barcode: t[2], ItemName: t[0] })
+        }));
+      }
+      return arr;
     } catch (e) {
       return MEM_FALLBACK[store] || [];
     }
@@ -30,19 +56,18 @@ window.AnilDB = (function () {
   function lsWriteStore(store, arr) {
     MEM_FALLBACK[store] = arr;
     if (store === 'pdfs') return true;
-    // Strip search helper before saving to localStorage to stay compact
     const compact = store === 'items'
-      ? arr.map((it) => ({
-          _key: it._key,
-          ItemName: it.ItemName,
-          MfgCode: it.MfgCode,
-          Barcode: it.Barcode,
-          Pack: it.Pack,
-          RawStock: it.RawStock,
-          Reserved: it.Reserved,
-          Stock: it.Stock,
-          SaleRate: it.SaleRate
-        }))
+      ? arr.map((it) => [
+          it.ItemName || '',
+          it.MfgCode || '',
+          it.Barcode || '',
+          it.Pack || 'PC',
+          Number(it.RawStock) || 0,
+          Number(it.Reserved) || 0,
+          Number(it.Stock) || 0,
+          Number(it.SaleRate) || 0,
+          it._key || ''
+        ])
       : arr;
     return lsSet(lsStoreKey(store), JSON.stringify(compact));
   }
@@ -70,7 +95,7 @@ window.AnilDB = (function () {
           idbDisabled = true;
           reject(new Error('IndexedDB open timeout'));
         }
-      }, 1500);
+      }, 5000);
 
       try {
         const req = indexedDB.open(DB_NAME, DB_VER);
@@ -135,7 +160,6 @@ window.AnilDB = (function () {
   }
 
   async function putMany(store, arr, clearFirst) {
-    // Always mirror small stores or fallback when IDB is disabled
     if (store !== 'items' || idbDisabled) {
       const kf = keyFieldOf(store);
       let base = clearFirst ? [] : lsReadStore(store);
@@ -195,6 +219,7 @@ window.AnilDB = (function () {
       MEM_FALLBACK[st] = [];
       lsDel(lsStoreKey(st));
     });
+    lastQuotaWarning = '';
     try {
       const db = await open();
       return await new Promise((resolve, reject) => {
@@ -217,13 +242,11 @@ window.AnilDB = (function () {
   async function migrateFromLegacyLocalStorage() {
     if (lsGet('ap_idb_migrated_v87')) return;
 
-    // Migrate Ver 06 & Ver 07 URLs
     const oldUrl = lsGet('ap_webhook_v6') || lsGet('anil_webhook_url') || lsGet('webhookUrl');
     if (oldUrl && !lsGet('ap_webhook_url')) {
       lsSet('ap_webhook_url', oldUrl.trim());
     }
 
-    // Migrate Ver 06 & Ver 07 items (including Ver 06 'master_items_data')
     const itemKeys = ['master_items_data', 'ap_items_v6', 'ap_items', 'anil_items', 'masterItems'];
     for (const k of itemKeys) {
       const raw = lsGet(k);
@@ -249,7 +272,6 @@ window.AnilDB = (function () {
       }
     }
 
-    // Migrate Ver 06 & Ver 07 orders (including Ver 06 'booked_orders_data')
     const orderKeys = ['booked_orders_data', 'ap_orders_v6', 'ap_orders', 'anil_orders', 'savedOrders'];
     for (const k of orderKeys) {
       const raw = lsGet(k);
@@ -267,7 +289,20 @@ window.AnilDB = (function () {
     lsSet('ap_idb_migrated_v87', '1');
   }
 
+  async function getDiagnostics() {
+    const stores = ['items', 'orders', 'tasks', 'taskQueue', 'auditTasks', 'auditItems', 'auditCounts'];
+    const counts = {};
+    for (const s of stores) {
+      try { counts[s] = (await getAll(s)).length; } catch (e) { counts[s] = -1; }
+    }
+    return {
+      engine: idbDisabled ? 'localStorage Fallback' : 'IndexedDB (Primary)',
+      quotaWarning: lastQuotaWarning || 'OK',
+      counts
+    };
+  }
+
   return {
-    open, getAll, putMany, putOne, deleteOne, clearAll, makeItemKey, migrateFromLegacyLocalStorage
+    open, getAll, putMany, putOne, deleteOne, clearAll, makeItemKey, migrateFromLegacyLocalStorage, getDiagnostics
   };
 })();
