@@ -1,5 +1,5 @@
 /**
- * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v11.0
+ * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v11.1
  * Guarantees instant, non-hanging startup on Android Chrome, WebViews, file://, content://, and HTTPS.
  */
 window.AnilDB = (function () {

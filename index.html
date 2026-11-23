@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Anil Plastics">
-<title>Anil Plastics - Order &amp; Tasks (Ver 11.0)</title>
+<title>Anil Plastics - Order &amp; Tasks (Ver 11.1)</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -411,7 +411,7 @@
   }
   .company-scope-banner.show { display: block; }
 
-  /* Mobile Physical Inventory Audit Module CSS (Ver 11.0) */
+  /* Mobile Physical Inventory Audit Module CSS (Ver 11.1) */
   .aud-sync-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 8px 0; }
   .aud-sync-box { background: #fff; border: 1.5px solid var(--line); border-radius: 9px; padding: 7px 6px; text-align: center; }
   .aud-sync-box b { display: block; font-size: 16px; font-weight: 800; color: var(--brand-green-dark); }
@@ -425,6 +425,16 @@
   .conv-Verified { background: #dcfce7; color: #166534; }
   .conv-PendingVerification { background: #fef3c7; color: #92400e; }
   .conv-ManualEntryRequired { background: #fee2e2; color: #b91c1c; }
+  .conv-FloorManualEntry { background: #e0f2fe; color: #0369a1; }
+  .aud-pack-box {
+    background: #f4faf7; border: 1.5px solid #9fd6b8; border-radius: 10px;
+    padding: 9px 10px; margin-bottom: 10px;
+  }
+  .aud-pack-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+  .aud-pack-inp {
+    width: 100%; padding: 9px 10px; font-size: 18px; font-weight: 800; text-align: center;
+    border: 1.5px solid var(--brand-green); border-radius: 8px; background: #fff; color: var(--brand-green-dark);
+  }
 
   .hidden-input { display: none; }
 </style>
@@ -451,7 +461,7 @@
 <div class="app-top">
   <div class="brand-header">
     <div class="brand-title-row">
-      <div class="brand-wordmark">ANIL PLASTICS <span class="brand-badge">Ver 11.0</span></div>
+      <div class="brand-wordmark">ANIL PLASTICS <span class="brand-badge">Ver 11.1</span></div>
       <button class="btn-upload-header" id="btnTopSyncStock">🔄 Stock</button>
     </div>
     <div class="salesman-bar">
@@ -935,7 +945,7 @@
       <button class="btn-sm btn-danger-soft btn-wide" id="btnReset">🗑️ Clear All Phone Data</button>
     </div>
   </div>
-  <div class="app-footer">Anil Plastics Workflow System · Ver 11.0 PWA</div>
+  <div class="app-footer">Anil Plastics Workflow System · Ver 11.1 PWA</div>
 </section>
 
 <input type="file" id="fileInput" class="hidden-input" accept=".xlsx,.xls,.csv">
@@ -1024,8 +1034,31 @@
       <span>Barcode: <b id="audCntBarcode" class="mono">-</b></span>
       <span id="audCntConvBadge" class="conv-pill conv-Verified">Verified</span>
     </div>
-    <div style="background:#f4faf7;border:1px solid #b4d8c4;border-radius:8px;padding:7px 10px;font-size:13px;font-weight:700;color:var(--brand-green-dark);margin-bottom:10px" id="audCntConvRule">
-      1 Bundle = 1 PC · 1 Inner Pack = 1 PC
+    <div id="audAlreadyCountedBanner" style="display:none;background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:800;color:#0369a1;margin-bottom:8px"></div>
+
+    <div class="aud-pack-box">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;font-weight:800;color:var(--brand-green-dark);text-transform:uppercase">📦 Packing Size (Editable on Floor)</span>
+        <span style="font-size:11.5px;font-weight:700;color:var(--text-muted)" id="audCntUnitLabel">Unit: PC</span>
+      </div>
+      <div class="aud-pack-grid">
+        <div>
+          <label for="audInpBundleFactor" style="font-size:11.5px;font-weight:800;color:var(--brand-green-dark);display:block;margin-bottom:3px">1 Bundle = ? pcs</label>
+          <input type="number" id="audInpBundleFactor" class="aud-pack-inp" value="1" inputmode="decimal" min="1" step="any">
+        </div>
+        <div>
+          <label for="audInpInnerFactor" style="font-size:11.5px;font-weight:800;color:var(--brand-green-dark);display:block;margin-bottom:3px">1 Inner = ? pcs</label>
+          <input type="number" id="audInpInnerFactor" class="aud-pack-inp" value="1" inputmode="decimal" min="1" step="any">
+        </div>
+      </div>
+      <div class="quick-qty" id="audQuickBdlFactor" style="margin-top:7px">
+        <button type="button" data-bdl-preset="6">Bdl:6</button>
+        <button type="button" data-bdl-preset="12">Bdl:12</button>
+        <button type="button" data-bdl-preset="24">Bdl:24</button>
+        <button type="button" data-bdl-preset="36">Bdl:36</button>
+        <button type="button" data-bdl-preset="48">Bdl:48</button>
+        <button type="button" data-bdl-preset="60">Bdl:60</button>
+      </div>
     </div>
 
     <div class="form-group" style="margin-bottom:10px">
@@ -1096,8 +1129,22 @@
     </div>
     <div class="form-row">
       <div class="form-group">
+        <label for="audUnlBundles">Bundles / Cartons</label>
+        <input type="number" id="audUnlBundles" class="form-control" placeholder="0" inputmode="decimal" min="0" step="any">
+      </div>
+      <div class="form-group">
+        <label for="audUnlBdlFactor">1 Bundle = ? pcs</label>
+        <input type="number" id="audUnlBdlFactor" class="form-control" value="1" inputmode="decimal" min="1" step="any">
+      </div>
+      <div class="form-group">
+        <label for="audUnlLoose">Loose Pieces</label>
+        <input type="number" id="audUnlLoose" class="form-control" placeholder="0" inputmode="decimal" min="0" step="any">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
         <label for="audUnlQty">Total Physical Pieces *</label>
-        <input type="number" id="audUnlQty" class="form-control" placeholder="0" inputmode="decimal" min="0.1" step="any">
+        <input type="number" id="audUnlQty" class="form-control" placeholder="0" inputmode="decimal" min="0.1" step="any" style="font-weight:800;color:var(--brand-green-dark)">
       </div>
       <div class="form-group">
         <label for="audUnlRemarks">Location / Rack Note</label>
@@ -1134,7 +1181,7 @@
 
 <script>
 /**
- * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v11.0
+ * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v11.1
  * Guarantees instant, non-hanging startup on Android Chrome, WebViews, file://, content://, and HTTPS.
  */
 window.AnilDB = (function () {
@@ -1410,7 +1457,7 @@ window.AnilDB = (function () {
 </script>
 <script>
 /**
- * Anil Plastics API Adapter (v11.0)
+ * Anil Plastics API Adapter (v11.1)
  * Self-healing URL discovery (?url= param, ap_webhook_url, anil_webhook_url) & safe JSON parsing.
  */
 window.AnilApi = (function () {
@@ -1534,7 +1581,7 @@ window.AnilApi = (function () {
     createCustomTask: (payload) => post('createCustomTask', payload),
     getMfgMaster: () => post('getMfgMaster', {}),
     uploadStockAudit: (items) => post('uploadStockAudit', { items: items || [] }),
-    // Physical Inventory Audit Module Endpoints (Ver 11.0)
+    // Physical Inventory Audit Module Endpoints (Ver 11.1)
     auditMyPackage: (sessionId) => post('auditMyPackage', { sessionId: sessionId || '' }),
     auditSyncCounts: (sessionId, deviceBatchID, counts) => post('auditSyncCounts', { sessionId: sessionId || '', deviceBatchID, counts: counts || [] }),
     auditTaskStatus: (taskId, status) => post('auditTaskStatus', { taskId, status }),
@@ -3886,8 +3933,8 @@ window.AnilApi = (function () {
     const bQ = parseFloat($('audInpBundles').value) || 0;
     const iQ = parseFloat($('audInpInner').value) || 0;
     const lQ = parseFloat($('audInpLoose').value) || 0;
-    const bF = Number(ACTIVE_AUD_ITEM.bundleFactor) || 1;
-    const iF = Number(ACTIVE_AUD_ITEM.innerFactor) || 1;
+    const bF = Math.max(1, parseFloat($('audInpBundleFactor').value) || 1);
+    const iF = Math.max(1, parseFloat($('audInpInnerFactor').value) || 1);
     const unit = ACTIVE_AUD_ITEM.baseUnit || 'PC';
     const total = Math.round(((bQ * bF) + (iQ * iF) + lQ) * 100) / 100;
     $('audCalcTotalDisplay').textContent = `${total} ${unit}`;
@@ -4033,9 +4080,22 @@ window.AnilApi = (function () {
       $('audCntMfg').textContent = it.companyName;
       $('audCntBarcode').textContent = it.barcode || 'No Barcode';
       const isMan = it.conversionStatus === 'Manual Entry Required';
+      const isFloorMan = it.conversionStatus === 'Floor Manual Entry';
       $('audCntConvBadge').textContent = it.conversionStatus;
-      $('audCntConvBadge').className = 'conv-pill ' + (isMan ? 'conv-ManualEntryRequired' : 'conv-Verified');
-      $('audCntConvRule').textContent = `1 Bundle = ${it.bundleFactor} ${it.baseUnit} · 1 Inner Pack = ${it.innerFactor} ${it.baseUnit}`;
+      $('audCntConvBadge').className = 'conv-pill ' + (isMan ? 'conv-ManualEntryRequired' : (isFloorMan ? 'conv-FloorManualEntry' : 'conv-Verified'));
+      $('audCntUnitLabel').textContent = `Unit: ${it.baseUnit || 'PC'}`;
+      $('audInpBundleFactor').value = Number(it.bundleFactor) || 1;
+      $('audInpInnerFactor').value = Number(it.innerFactor) || 1;
+
+      const prevTaskCounts = AUD_COUNTS.filter((c) => c.taskId === ACTIVE_AUD_TASK.taskId && c.itemKey === it.itemKey && c.status !== 'Rejected' && c.status !== 'Recount Requested');
+      const prevQty = prevTaskCounts.reduce((s, c) => s + Number(c.totalBaseQty || 0), 0);
+      const prevBanner = $('audAlreadyCountedBanner');
+      if (prevQty > 0) {
+        prevBanner.style.display = 'block';
+        prevBanner.innerHTML = `➕ Already counted here: <b>${prevQty} ${escapeHtml(it.baseUnit || 'PC')}</b> (new entry will ADD to total)`;
+      } else {
+        prevBanner.style.display = 'none';
+      }
 
       $('audInpBundles').value = '';
       $('audInpInner').value = '';
@@ -4046,9 +4106,15 @@ window.AnilApi = (function () {
       setTimeout(() => $('audInpBundles').focus(), 70);
     };
 
-    ['audInpBundles', 'audInpInner', 'audInpLoose'].forEach((id) => {
+    ['audInpBundles', 'audInpInner', 'audInpLoose', 'audInpBundleFactor', 'audInpInnerFactor'].forEach((id) => {
       $(id).oninput = updateAuditModalCalculation;
     });
+    $('audQuickBdlFactor').onclick = (e) => {
+      const btn = e.target.closest('[data-bdl-preset]');
+      if (!btn) return;
+      $('audInpBundleFactor').value = btn.dataset.bdlPreset;
+      updateAuditModalCalculation();
+    };
     document.querySelectorAll('[data-aud-step]').forEach((b) => {
       b.onclick = () => {
         const [field, deltaStr] = b.dataset.audStep.split(':');
@@ -4064,12 +4130,28 @@ window.AnilApi = (function () {
       const bQ = parseFloat($('audInpBundles').value) || 0;
       const iQ = parseFloat($('audInpInner').value) || 0;
       const lQ = parseFloat($('audInpLoose').value) || 0;
-      const bF = Number(ACTIVE_AUD_ITEM.bundleFactor) || 1;
-      const iF = Number(ACTIVE_AUD_ITEM.innerFactor) || 1;
+      const origBF = Number(ACTIVE_AUD_ITEM.bundleFactor) || 1;
+      const origIF = Number(ACTIVE_AUD_ITEM.innerFactor) || 1;
+      const bF = Math.max(1, parseFloat($('audInpBundleFactor').value) || 1);
+      const iF = Math.max(1, parseFloat($('audInpInnerFactor').value) || 1);
       const totalBase = Math.round(((bQ * bF) + (iQ * iF) + lQ) * 100) / 100;
       if (totalBase <= 0) {
         toast('Enter at least 1 Bundle, Inner Pack, or Loose Piece.', true);
         return;
+      }
+
+      const isManualPack = (bF !== origBF) || (iF !== origIF) ||
+        (ACTIVE_AUD_ITEM.conversionStatus === 'Manual Entry Required' && (bQ > 0 || iQ > 0));
+      const nextConvStatus = isManualPack ? 'Floor Manual Entry' : ACTIVE_AUD_ITEM.conversionStatus;
+
+      // Remember updated floor packing on this phone for subsequent racks of the same SKU
+      if (bF !== origBF || iF !== origIF) {
+        ACTIVE_AUD_ITEM.bundleFactor = bF;
+        ACTIVE_AUD_ITEM.innerFactor = iF;
+        if (ACTIVE_AUD_ITEM.conversionStatus === 'Manual Entry Required') {
+          ACTIVE_AUD_ITEM.conversionStatus = 'Floor Manual Entry';
+        }
+        await AnilDB.putOne('auditItems', ACTIVE_AUD_ITEM);
       }
 
       const u = AnilApi.getConfig().user || { name: 'Counter', userId: '', shortCode: 'CNT' };
@@ -4088,8 +4170,9 @@ window.AnilApi = (function () {
         looseQty: lQ,
         bundleFactor: bF,
         innerFactor: iF,
+        manualPackEntered: isManualPack,
         totalBaseQty: totalBase,
-        conversionStatus: ACTIVE_AUD_ITEM.conversionStatus,
+        conversionStatus: nextConvStatus,
         countRound: ACTIVE_AUD_TASK.status === 'Recount Required' ? 2 : 1,
         status: 'Pending Verification',
         countedBy: u.name,
@@ -4109,12 +4192,26 @@ window.AnilApi = (function () {
       syncMobileAuditCounts(true);
     };
 
+    function updateUnlistedTotalCalc() {
+      const bQ = parseFloat($('audUnlBundles').value) || 0;
+      const bF = Math.max(1, parseFloat($('audUnlBdlFactor').value) || 1);
+      const lQ = parseFloat($('audUnlLoose').value) || 0;
+      const tot = Math.round(((bQ * bF) + lQ) * 100) / 100;
+      if (tot > 0) $('audUnlQty').value = tot;
+    }
+    ['audUnlBundles', 'audUnlBdlFactor', 'audUnlLoose'].forEach((id) => {
+      $(id).oninput = updateUnlistedTotalCalc;
+    });
+
     $('btnMobAudOpenUnlisted').onclick = () => {
       if (!ACTIVE_AUD_TASK) return;
       $('audUnlLocLabel').textContent = ACTIVE_AUD_TASK.locationLabel;
       $('audUnlName').value = '';
       $('audUnlMfg').value = ACTIVE_AUD_TASK.mfgCode !== 'ALL' ? ACTIVE_AUD_TASK.mfgCode : '';
       $('audUnlBarcode').value = '';
+      $('audUnlBundles').value = '';
+      $('audUnlBdlFactor').value = '1';
+      $('audUnlLoose').value = '';
       $('audUnlQty').value = '';
       $('audUnlRemarks').value = '';
       $('audUnlistedModal').classList.add('open');
@@ -4123,6 +4220,9 @@ window.AnilApi = (function () {
     $('btnSaveAudUnlisted').onclick = async () => {
       if (!ACTIVE_AUD_TASK) return;
       const itemName = $('audUnlName').value.trim();
+      const bQ = parseFloat($('audUnlBundles').value) || 0;
+      const bF = Math.max(1, parseFloat($('audUnlBdlFactor').value) || 1);
+      const lQ = parseFloat($('audUnlLoose').value) || 0;
       const qty = parseFloat($('audUnlQty').value) || 0;
       if (!itemName || qty <= 0) {
         toast('Enter Item Name and Physical Quantity > 0.', true);
@@ -4141,13 +4241,14 @@ window.AnilApi = (function () {
         mfgCode: mfg,
         companyName: getMfgDisplay(mfg),
         barcode: bc,
-        bundlesQty: 0,
+        bundlesQty: bQ,
         innerPacksQty: 0,
-        looseQty: qty,
-        bundleFactor: 1,
+        looseQty: bQ > 0 ? lQ : qty,
+        bundleFactor: bF,
         innerFactor: 1,
+        manualPackEntered: bF > 1,
         totalBaseQty: qty,
-        conversionStatus: 'Manual Entry Required',
+        conversionStatus: 'Floor Manual Entry',
         countRound: 1,
         status: 'Pending Verification',
         countedBy: u.name,

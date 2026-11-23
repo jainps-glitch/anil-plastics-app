@@ -1,5 +1,5 @@
 /**
- * Anil Plastics API Adapter (v11.0)
+ * Anil Plastics API Adapter (v11.1)
  * Self-healing URL discovery (?url= param, ap_webhook_url, anil_webhook_url) & safe JSON parsing.
  */
 window.AnilApi = (function () {
