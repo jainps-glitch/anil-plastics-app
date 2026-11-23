@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Anil Plastics">
-<title>Anil Plastics - Order &amp; Tasks (Ver 10.1)</title>
+<title>Anil Plastics - Order &amp; Tasks (Ver 11.0)</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -411,6 +411,21 @@
   }
   .company-scope-banner.show { display: block; }
 
+  /* Mobile Physical Inventory Audit Module CSS (Ver 11.0) */
+  .aud-sync-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 8px 0; }
+  .aud-sync-box { background: #fff; border: 1.5px solid var(--line); border-radius: 9px; padding: 7px 6px; text-align: center; }
+  .aud-sync-box b { display: block; font-size: 16px; font-weight: 800; color: var(--brand-green-dark); }
+  .aud-sync-box span { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; }
+  .aud-calc-preview {
+    background: #ecfdf5; border: 2px solid #16a34a; border-radius: 12px;
+    padding: 12px; margin-top: 10px; text-align: center;
+  }
+  .aud-calc-preview b { font-size: 24px; font-weight: 800; color: #14532d; display: block; }
+  .conv-pill { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 800; }
+  .conv-Verified { background: #dcfce7; color: #166534; }
+  .conv-PendingVerification { background: #fef3c7; color: #92400e; }
+  .conv-ManualEntryRequired { background: #fee2e2; color: #b91c1c; }
+
   .hidden-input { display: none; }
 </style>
 </head>
@@ -436,7 +451,7 @@
 <div class="app-top">
   <div class="brand-header">
     <div class="brand-title-row">
-      <div class="brand-wordmark">ANIL PLASTICS <span class="brand-badge">Ver 10.1</span></div>
+      <div class="brand-wordmark">ANIL PLASTICS <span class="brand-badge">Ver 11.0</span></div>
       <button class="btn-upload-header" id="btnTopSyncStock">🔄 Stock</button>
     </div>
     <div class="salesman-bar">
@@ -449,6 +464,7 @@
     <button class="role-btn" id="roleBtnOwner" data-role-view="owner" style="display:none">👑 Owner Live</button>
     <button class="role-btn active" id="roleBtnBook" data-role-view="book">📝 Book</button>
     <button class="role-btn" id="roleBtnTasks" data-role-view="tasks">📦 Tasks <span class="tab-badge" id="myTasksBadge">0</span></button>
+    <button class="role-btn" id="roleBtnAudit" data-role-view="invAudit" style="display:none">🏭 Audit <span class="tab-badge" id="myInvAuditBadge">0</span></button>
   </div>
 
   <nav class="nav-tabs" id="salesNavTabs" role="tablist">
@@ -804,6 +820,75 @@
   <ul id="auditItemList" class="item-list"></ul>
 </section>
 
+<section id="tabInvAudit" class="tab-content" style="padding-bottom:60px">
+  <div class="toolbar">
+    <div class="toolbar-row">
+      <div>
+        <span class="toolbar-title">🏭 Physical Inventory Audit</span>
+        <div style="font-size:12px;color:var(--text-muted);font-weight:700" id="mobAudSessLabel">Tap "Download Tasks" while online</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button type="button" class="btn-sm btn-green" id="btnMobAudDownload" style="min-height:38px;padding:6px 10px;font-size:12.5px">📥 Download</button>
+        <button type="button" class="btn-sm btn-blue" id="btnMobAudSyncNow" style="min-height:38px;padding:6px 10px;font-size:12.5px">☁️ Sync</button>
+      </div>
+    </div>
+
+    <div class="aud-sync-strip">
+      <div class="aud-sync-box"><b id="audStatSaved">0</b><span>Saved Phone</span></div>
+      <div class="aud-sync-box"><b id="audStatPending" style="color:#d97706">0</b><span>Pending Sync</span></div>
+      <div class="aud-sync-box"><b id="audStatSynced" style="color:#16a34a">0</b><span>Synced</span></div>
+      <div class="aud-sync-box"><b id="audStatFailed" style="color:#dc2626">0</b><span>Sync Failed</span></div>
+    </div>
+
+    <div id="mobAudSupSubtabs" style="display:none;gap:6px">
+      <button type="button" class="chip active" data-maudsub="mycount">📋 My Counting Tasks</button>
+      <button type="button" class="chip" data-maudsub="supverify">✅ Supervisor Verify (<span id="mobAudSupPendCnt">0</span>)</button>
+    </div>
+  </div>
+
+  <!-- Sub-view 1: Counter's Assigned Location Tasks -->
+  <div id="mobAudTasksView">
+    <div id="mobAudTasksContainer"></div>
+  </div>
+
+  <!-- Sub-view 2: Physical Stock Discovery & Counting Screen -->
+  <div id="mobAudCountView" style="display:none">
+    <div class="task-exec-top">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:6px">
+        <button type="button" class="btn-sm btn-light" id="btnMobAudBackTasks" style="min-height:36px;padding:5px 10px;font-size:13px">← Locations</button>
+        <button type="button" class="btn-sm" id="btnMobAudSubmitTask" style="background:var(--accent);color:#103b25;min-height:36px;padding:5px 11px;font-size:13px">✅ Finish Location</button>
+      </div>
+      <h2 id="mobAudLocHeading">GF – Ground Floor</h2>
+      <div id="mobAudTaskSubMeta" style="font-size:13px;color:#d1f2e0">Assigned Company · 0 SKUs counted</div>
+    </div>
+
+    <div class="search-container">
+      <div class="search-box">
+        <input type="search" id="mobAudSearchInp" class="search-input" placeholder="Search item name, code or barcode…" autocomplete="off">
+        <button type="button" class="search-clear" data-clear="mobAudSearchInp">✕</button>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+        <div class="chip-container" id="mobAudChips" style="flex:1">
+          <button type="button" class="chip active" data-audchip="all">All Assigned</button>
+          <button type="button" class="chip" data-audchip="counted">✅ Counted (<span id="mobAudChipCounted">0</span>)</button>
+          <button type="button" class="chip" data-audchip="manual">⚠️ Unknown Pack</button>
+        </div>
+        <button type="button" class="btn-sm btn-amber" id="btnMobAudOpenUnlisted" style="min-height:38px;padding:6px 10px;font-size:12.5px">➕ Unlisted Item</button>
+      </div>
+    </div>
+    <div class="result-meta" id="mobAudResultMeta">Search an item physically found at this location</div>
+    <ul id="mobAudItemList" class="item-list"></ul>
+  </div>
+
+  <!-- Sub-view 3: Mobile Supervisor Quick-Verify -->
+  <div id="mobAudSupVerifyView" style="display:none">
+    <div id="mobAudSupVerifyContainer"></div>
+  </div>
+</section>
+
 <section id="tabSettings" class="tab-content">
   <div class="settings-card" style="border:2px solid #9fd6b8;background:#f7fcf9">
     <div class="settings-title">👤 Active Profile &amp; Logout</div>
@@ -850,7 +935,7 @@
       <button class="btn-sm btn-danger-soft btn-wide" id="btnReset">🗑️ Clear All Phone Data</button>
     </div>
   </div>
-  <div class="app-footer">Anil Plastics Workflow System · Ver 10.1 PWA</div>
+  <div class="app-footer">Anil Plastics Workflow System · Ver 11.0 PWA</div>
 </section>
 
 <input type="file" id="fileInput" class="hidden-input" accept=".xlsx,.xls,.csv">
@@ -928,6 +1013,104 @@
   </div>
 </div>
 
+<div id="audCountModal" class="modal-overlay">
+  <div class="modal">
+    <div id="audCntItemName" class="modal-title">Item Name</div>
+    <div class="modal-row">
+      <span>Location: <b id="audCntLocBadge">-</b></span>
+      <span>Mfg: <b id="audCntMfg" class="mfg-pill">-</b></span>
+    </div>
+    <div class="modal-row">
+      <span>Barcode: <b id="audCntBarcode" class="mono">-</b></span>
+      <span id="audCntConvBadge" class="conv-pill conv-Verified">Verified</span>
+    </div>
+    <div style="background:#f4faf7;border:1px solid #b4d8c4;border-radius:8px;padding:7px 10px;font-size:13px;font-weight:700;color:var(--brand-green-dark);margin-bottom:10px" id="audCntConvRule">
+      1 Bundle = 1 PC · 1 Inner Pack = 1 PC
+    </div>
+
+    <div class="form-group" style="margin-bottom:10px">
+      <label for="audInpBundles">Outer Bundles / Cartons</label>
+      <div class="qty-stepper">
+        <button type="button" data-aud-step="bundles:-1">−</button>
+        <input type="number" id="audInpBundles" class="form-control" placeholder="0" inputmode="decimal" min="0" step="any">
+        <button type="button" data-aud-step="bundles:1">+</button>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="audInpInner">Inner Packs</label>
+        <div class="qty-stepper">
+          <button type="button" data-aud-step="inner:-1" style="width:42px">−</button>
+          <input type="number" id="audInpInner" class="form-control" placeholder="0" inputmode="decimal" min="0" step="any">
+          <button type="button" data-aud-step="inner:1" style="width:42px">+</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="audInpLoose">Loose Pieces</label>
+        <div class="qty-stepper">
+          <button type="button" data-aud-step="loose:-1" style="width:42px">−</button>
+          <input type="number" id="audInpLoose" class="form-control" placeholder="0" inputmode="decimal" min="0" step="any">
+          <button type="button" data-aud-step="loose:1" style="width:42px">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="aud-calc-preview">
+      <span style="font-size:12px;font-weight:800;color:var(--brand-green-dark);text-transform:uppercase">Calculated Physical Total</span>
+      <b id="audCalcTotalDisplay">0 PC</b>
+      <small id="audCalcBreakdown" style="color:var(--text-muted);font-weight:700">0 Bundles + 0 Inner + 0 Loose</small>
+    </div>
+
+    <div class="form-group" style="margin-top:10px">
+      <label for="audInpRemarks">Remarks (Optional)</label>
+      <input type="text" id="audInpRemarks" class="form-control" placeholder="e.g. Damaged box, top shelf">
+    </div>
+
+    <div class="modal-buttons">
+      <button type="button" class="btn-modal btn-modal-cancel" data-close-modal="audCountModal">Cancel</button>
+      <button type="button" class="btn-modal btn-modal-save" id="btnSaveAudCount">💾 Save &amp; Continue</button>
+    </div>
+  </div>
+</div>
+
+<div id="audUnlistedModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">➕ Report Unlisted Physical Item</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">
+      Found a physical item at <b id="audUnlLocLabel">-</b> that is missing from your assigned stock list? Record it below for supervisor verification.
+    </p>
+    <div class="form-group" style="margin-bottom:8px">
+      <label for="audUnlName">Physical Item Name / Description *</label>
+      <input type="text" id="audUnlName" class="form-control" placeholder="e.g. Joyo Classic Mug 300ml">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="audUnlMfg">Company / Mfg Code</label>
+        <input type="text" id="audUnlMfg" class="form-control" placeholder="e.g. JOYO">
+      </div>
+      <div class="form-group">
+        <label for="audUnlBarcode">Barcode (if printed)</label>
+        <input type="text" id="audUnlBarcode" class="form-control mono" placeholder="Optional">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="audUnlQty">Total Physical Pieces *</label>
+        <input type="number" id="audUnlQty" class="form-control" placeholder="0" inputmode="decimal" min="0.1" step="any">
+      </div>
+      <div class="form-group">
+        <label for="audUnlRemarks">Location / Rack Note</label>
+        <input type="text" id="audUnlRemarks" class="form-control" placeholder="e.g. Near staircase">
+      </div>
+    </div>
+    <div class="modal-buttons">
+      <button type="button" class="btn-modal btn-modal-cancel" data-close-modal="audUnlistedModal">Cancel</button>
+      <button type="button" class="btn-modal btn-modal-save" id="btnSaveAudUnlisted">💾 Save Unlisted Item</button>
+    </div>
+  </div>
+</div>
+
 <div id="ownerOrderModal" class="modal-overlay">
   <div class="modal" style="max-width:520px">
     <div class="modal-title" id="ownOrdModalTitle">Order Control</div>
@@ -951,15 +1134,15 @@
 
 <script>
 /**
- * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v10.1
+ * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v11.0
  * Guarantees instant, non-hanging startup on Android Chrome, WebViews, file://, content://, and HTTPS.
  */
 window.AnilDB = (function () {
   const DB_NAME = 'AnilPlasticsDB_v8';
-  const DB_VER = 1;
+  const DB_VER = 2;
   let dbPromise = null;
   let idbDisabled = false;
-  const MEM_FALLBACK = { items: [], orders: [], tasks: [], taskQueue: [], pdfs: [], meta: [] };
+  const MEM_FALLBACK = { items: [], orders: [], tasks: [], taskQueue: [], pdfs: [], meta: [], auditTasks: [], auditItems: [], auditCounts: [] };
 
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
@@ -1000,7 +1183,9 @@ window.AnilDB = (function () {
   }
 
   function keyFieldOf(store) {
-    if (store === 'items') return '_key';
+    if (store === 'items' || store === 'auditItems') return '_key';
+    if (store === 'auditTasks') return 'taskId';
+    if (store === 'auditCounts') return 'countId';
     if (store === 'orders' || store === 'pdfs') return 'id';
     if (store === 'tasks') return 'orderId';
     if (store === 'taskQueue') return 'qid';
@@ -1032,6 +1217,9 @@ window.AnilDB = (function () {
           if (!db.objectStoreNames.contains('taskQueue')) db.createObjectStore('taskQueue', { keyPath: 'qid', autoIncrement: true });
           if (!db.objectStoreNames.contains('pdfs')) db.createObjectStore('pdfs', { keyPath: 'id' });
           if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', { keyPath: 'k' });
+          if (!db.objectStoreNames.contains('auditTasks')) db.createObjectStore('auditTasks', { keyPath: 'taskId' });
+          if (!db.objectStoreNames.contains('auditItems')) db.createObjectStore('auditItems', { keyPath: '_key' });
+          if (!db.objectStoreNames.contains('auditCounts')) db.createObjectStore('auditCounts', { keyPath: 'countId' });
         };
         req.onsuccess = () => {
           if (!settled) {
@@ -1137,7 +1325,7 @@ window.AnilDB = (function () {
   }
 
   async function clearAll() {
-    const stores = ['items', 'orders', 'tasks', 'taskQueue', 'meta'];
+    const stores = ['items', 'orders', 'tasks', 'taskQueue', 'meta', 'auditTasks', 'auditItems', 'auditCounts'];
     stores.forEach((st) => {
       MEM_FALLBACK[st] = [];
       lsDel(lsStoreKey(st));
@@ -1222,7 +1410,7 @@ window.AnilDB = (function () {
 </script>
 <script>
 /**
- * Anil Plastics API Adapter (v10.1)
+ * Anil Plastics API Adapter (v11.0)
  * Self-healing URL discovery (?url= param, ap_webhook_url, anil_webhook_url) & safe JSON parsing.
  */
 window.AnilApi = (function () {
@@ -1345,7 +1533,15 @@ window.AnilApi = (function () {
     deleteOrder: (orderId) => post('deleteOrder', { orderId }),
     createCustomTask: (payload) => post('createCustomTask', payload),
     getMfgMaster: () => post('getMfgMaster', {}),
-    uploadStockAudit: (items) => post('uploadStockAudit', { items: items || [] })
+    uploadStockAudit: (items) => post('uploadStockAudit', { items: items || [] }),
+    // Physical Inventory Audit Module Endpoints (Ver 11.0)
+    auditMyPackage: (sessionId) => post('auditMyPackage', { sessionId: sessionId || '' }),
+    auditSyncCounts: (sessionId, deviceBatchID, counts) => post('auditSyncCounts', { sessionId: sessionId || '', deviceBatchID, counts: counts || [] }),
+    auditTaskStatus: (taskId, status) => post('auditTaskStatus', { taskId, status }),
+    auditPulse: (sessionId) => post('auditPulse', { sessionId: sessionId || '' }),
+    auditVerifyCount: (payload) => post('auditVerifyCount', payload),
+    auditSaveConversion: (payload) => post('auditSaveConversion', payload),
+    auditResolveException: (exceptionId, resolutionNote) => post('auditResolveException', { exceptionId, resolutionNote })
   };
 })();
 
@@ -1552,8 +1748,12 @@ window.AnilApi = (function () {
       }
     }
 
+    const audAcc = u.auditAccess || (isOwner || roles.includes('admin') ? 'manager' : 'counter');
+    const hasAudit = (audAcc !== 'none');
+
     $('roleBtnOwner').style.display = isOwner ? 'flex' : 'none';
-    $('roleSwitcher').classList.toggle('show', isOwner || (isSales && isEmp));
+    if ($('roleBtnAudit')) $('roleBtnAudit').style.display = hasAudit ? 'flex' : 'none';
+    $('roleSwitcher').classList.toggle('show', isOwner || hasAudit || (isSales && isEmp));
 
     if (isOwner) switchRoleView('owner');
     else if (isSales) switchRoleView('book');
@@ -1564,11 +1764,16 @@ window.AnilApi = (function () {
     $('roleBtnOwner').classList.toggle('active', view === 'owner');
     $('roleBtnBook').classList.toggle('active', view === 'book');
     $('roleBtnTasks').classList.toggle('active', view === 'tasks');
+    if ($('roleBtnAudit')) $('roleBtnAudit').classList.toggle('active', view === 'invAudit');
 
     if (view === 'owner') {
       $('salesNavTabs').style.display = 'none';
       $('empNavTabs').style.display = 'none';
       activateTab('owner');
+    } else if (view === 'invAudit') {
+      $('salesNavTabs').style.display = 'none';
+      $('empNavTabs').style.display = 'none';
+      activateTab('invAudit');
     } else if (view === 'tasks') {
       $('salesNavTabs').style.display = 'none';
       $('empNavTabs').style.display = 'flex';
@@ -1583,10 +1788,11 @@ window.AnilApi = (function () {
   function activateTab(tabName) {
     document.querySelectorAll('.nav-tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === tabName));
     document.querySelectorAll('.tab-content').forEach((s) => s.classList.remove('active'));
-    const map = { owner: 'tabOwner', order: 'tabOrder', catalog: 'tabCatalog', saved: 'tabSaved', audit: 'tabAudit', settings: 'tabSettings', tasks: 'tabTasks' };
+    const map = { owner: 'tabOwner', order: 'tabOrder', catalog: 'tabCatalog', saved: 'tabSaved', audit: 'tabAudit', settings: 'tabSettings', tasks: 'tabTasks', invAudit: 'tabInvAudit' };
     if (map[tabName]) $(map[tabName]).classList.add('active');
     $('cartBar').style.display = (tabName === 'order') ? 'flex' : 'none';
     if (tabName === 'owner') loadOwnerMobileDashboard(false);
+    if (tabName === 'invAudit') initMobileAuditTab();
     if (tabName === 'saved') renderSavedOrders();
     if (tabName === 'audit') renderAuditList();
     if (tabName === 'catalog') renderCatalogues();
@@ -3335,7 +3541,7 @@ window.AnilApi = (function () {
 
     $('btnBackup').onclick = () => {
       const blob = new Blob([JSON.stringify({
-        version: '10.1',
+        version: '11.0',
         exportedAt: new Date().toISOString(),
         orders: ORDERS,
         auditCounts: AUDIT_COUNTS
@@ -3423,10 +3629,551 @@ window.AnilApi = (function () {
       };
     });
 
+  // ================= MOBILE OFFLINE-FIRST PHYSICAL INVENTORY AUDIT (VER 11.0) =================
+  let AUD_SESSION = null;
+  let AUD_TASKS = [];
+  let AUD_ITEMS = [];
+  let AUD_COUNTS = [];
+  let ACTIVE_AUD_TASK = null;
+  let ACTIVE_AUD_ITEM = null;
+  let AUD_CHIP_FILTER = 'all';
+  let AUD_PAGE_LIMIT = 80;
+  let audSyncInFlight = false;
+
+  async function initMobileAuditTab() {
+    AUD_TASKS = await AnilDB.getAll('auditTasks');
+    AUD_ITEMS = await AnilDB.getAll('auditItems');
+    AUD_COUNTS = await AnilDB.getAll('auditCounts');
+    try {
+      AUD_SESSION = JSON.parse(localStorage.getItem('ap_aud_session') || 'null');
+    } catch (e) { AUD_SESSION = null; }
+
+    AUD_ITEMS.forEach((it) => {
+      if (!it._search) it._search = `${it.itemName} ${it.mfgCode} ${it.companyName} ${it.barcode}`.toLowerCase();
+    });
+
+    const u = AnilApi.getConfig().user || {};
+    const isSup = u.isOwner || (u.roles || []).includes('owner') || (u.roles || []).includes('admin') || ['supervisor', 'manager'].includes(u.auditAccess);
+    if ($('mobAudSupSubtabs')) $('mobAudSupSubtabs').style.display = isSup ? 'flex' : 'none';
+
+    updateMobileAuditStatsUI();
+    renderMobileAuditTasks();
+    if (navigator.onLine) {
+      syncMobileAuditCounts(true);
+      if (!AUD_TASKS.length) downloadMobileAuditPackage(true);
+    }
+  }
+
+  function updateMobileAuditStatsUI() {
+    const saved = AUD_COUNTS.length;
+    const pending = AUD_COUNTS.filter((c) => c.syncState === 'pending').length;
+    const failed = AUD_COUNTS.filter((c) => c.syncState === 'failed').length;
+    const synced = AUD_COUNTS.filter((c) => c.syncState === 'synced').length;
+    if ($('audStatSaved')) $('audStatSaved').textContent = saved;
+    if ($('audStatPending')) $('audStatPending').textContent = pending;
+    if ($('audStatSynced')) $('audStatSynced').textContent = synced;
+    if ($('audStatFailed')) $('audStatFailed').textContent = failed;
+    if ($('myInvAuditBadge')) $('myInvAuditBadge').textContent = AUD_TASKS.length;
+    if ($('mobAudSessLabel')) {
+      $('mobAudSessLabel').textContent = AUD_SESSION
+        ? `${AUD_SESSION.title} · Freeze: ${AUD_SESSION.stockFreezeDate} (${AUD_SESSION.status})`
+        : 'Tap "Download" while connected to load assigned locations';
+    }
+  }
+
+  async function downloadMobileAuditPackage(silent) {
+    if (!navigator.onLine) {
+      if (!silent) toast('Offline — using saved audit tasks & stock on phone', true);
+      return;
+    }
+    try {
+      if (!silent) toast('Downloading audit tasks & Google MasterStock…');
+      const res = await AnilApi.auditMyPackage('');
+      if (!res || !res.ok) {
+        if (!silent) toast((res && res.message) || 'Failed to download audit package', true);
+        return;
+      }
+      AUD_SESSION = res.session || null;
+      localStorage.setItem('ap_aud_session', JSON.stringify(AUD_SESSION));
+      AUD_TASKS = res.tasks || [];
+      AUD_ITEMS = (res.items || []).map((it) => Object.assign({}, it, {
+        _key: it.itemKey,
+        _search: `${it.itemName} ${it.mfgCode} ${it.companyName} ${it.barcode}`.toLowerCase()
+      }));
+
+      await AnilDB.putMany('auditTasks', AUD_TASKS, true);
+      await AnilDB.putMany('auditItems', AUD_ITEMS, true);
+
+      // Merge server counts without overwriting unsynced local counts
+      const localMap = new Map(AUD_COUNTS.map((c) => [c.countId, c]));
+      (res.existingCounts || []).forEach((sc) => {
+        if (!localMap.has(sc.countId)) {
+          localMap.set(sc.countId, Object.assign({}, sc, { syncState: 'synced' }));
+        }
+      });
+      AUD_COUNTS = Array.from(localMap.values());
+      await AnilDB.putMany('auditCounts', AUD_COUNTS, true);
+
+      updateMobileAuditStatsUI();
+      renderMobileAuditTasks();
+      if (ACTIVE_AUD_TASK) renderMobileAuditItems();
+      if (!silent) toast(`✅ Downloaded ${AUD_TASKS.length} location task(s) & ${AUD_ITEMS.length} SKUs`);
+    } catch (e) {
+      if (!silent) toast(e.message, true);
+    }
+  }
+
+  async function syncMobileAuditCounts(silent) {
+    if (audSyncInFlight || !navigator.onLine) return;
+    const toSend = AUD_COUNTS.filter((c) => c.syncState === 'pending' || c.syncState === 'failed');
+    if (!toSend.length) {
+      if (!silent) toast('All physical counts are already synced ✓');
+      return;
+    }
+    audSyncInFlight = true;
+    try {
+      // Upload in batches of 50 for fast, safe concurrency across 10-15 phones
+      for (let i = 0; i < toSend.length; i += 50) {
+        const chunk = toSend.slice(i, i + 50);
+        const batchId = 'B-' + Date.now() + '-' + i;
+        const sid = (AUD_SESSION && AUD_SESSION.sessionId) || chunk[0].sessionId || '';
+        const res = await AnilApi.auditSyncCounts(sid, batchId, chunk);
+        if (res && res.ok) {
+          const ackSet = new Set(res.ackIds || []);
+          for (let j = 0; j < AUD_COUNTS.length; j++) {
+            if (ackSet.has(AUD_COUNTS[j].countId)) {
+              AUD_COUNTS[j].syncState = 'synced';
+              await AnilDB.putOne('auditCounts', AUD_COUNTS[j]);
+            }
+          }
+        } else {
+          for (let j = 0; j < chunk.length; j++) {
+            const idx = AUD_COUNTS.findIndex((x) => x.countId === chunk[j].countId);
+            if (idx >= 0) {
+              AUD_COUNTS[idx].syncState = 'failed';
+              await AnilDB.putOne('auditCounts', AUD_COUNTS[idx]);
+            }
+          }
+          if (!silent) toast((res && res.message) || 'Sync failed — saved safely on phone', true);
+          break;
+        }
+      }
+      updateMobileAuditStatsUI();
+      if (ACTIVE_AUD_TASK) renderMobileAuditItems();
+      if (!silent) toast('☁️ Physical counts synced to server ✓');
+    } catch (e) {
+      for (let j = 0; j < toSend.length; j++) {
+        const idx = AUD_COUNTS.findIndex((x) => x.countId === toSend[j].countId);
+        if (idx >= 0) {
+          AUD_COUNTS[idx].syncState = 'failed';
+          await AnilDB.putOne('auditCounts', AUD_COUNTS[idx]);
+        }
+      }
+      updateMobileAuditStatsUI();
+      if (!silent) toast('Offline / Sync error — counts safely kept on phone', true);
+    } finally {
+      audSyncInFlight = false;
+    }
+  }
+
+  function renderMobileAuditTasks() {
+    $('mobAudTasksView').style.display = 'block';
+    $('mobAudCountView').style.display = 'none';
+    if (!AUD_TASKS.length) {
+      $('mobAudTasksContainer').innerHTML = '<div class="empty-state">No physical audit tasks assigned yet.<br>Tap <b>📥 Download</b> above while online.</div>';
+      return;
+    }
+    $('mobAudTasksContainer').innerHTML = AUD_TASKS.map((t) => {
+      const taskCounts = AUD_COUNTS.filter((c) => c.taskId === t.taskId);
+      const totalPcs = taskCounts.reduce((s, c) => s + Number(c.totalBaseQty || 0), 0);
+      const isRecount = t.status === 'Recount Required';
+      return `<div class="task-card ${isRecount ? 'urgent' : ''}" data-open-audtask="${escapeHtml(t.taskId)}">
+        <div class="task-header">
+          <div>
+            <span class="task-type-tag type-order">${escapeHtml(t.location)}</span>
+            <div class="task-party">🏢 ${escapeHtml(t.locationLabel)}</div>
+          </div>
+          <span class="prio-pill ${isRecount ? 'prio-Urgent' : 'prio-Normal'}">${escapeHtml(t.status)}</span>
+        </div>
+        <div style="font-size:14px;color:#334155;margin-bottom:10px">
+          Company: <b>${escapeHtml(t.companyName)}</b>${t.category ? ' · Cat: <b>' + escapeHtml(t.category) + '</b>' : ''}<br>
+          Counted Here: <b>${taskCounts.length}</b> SKU(s) · <b>${totalPcs}</b> total pcs
+          ${t.notes ? `<div style="margin-top:4px;color:#92400e;font-weight:700">📝 ${escapeHtml(t.notes)}</div>` : ''}
+        </div>
+        <button type="button" class="btn-wide ${isRecount ? 'btn-amber' : 'btn-green'}">
+          ${isRecount ? '🔄 Start Recount Now' : '▶ Open Location & Count Items'}
+        </button>
+      </div>`;
+    }).join('');
+  }
+
+  function openMobileAuditTask(taskId) {
+    const t = AUD_TASKS.find((x) => x.taskId === taskId);
+    if (!t) return;
+    ACTIVE_AUD_TASK = t;
+    AUD_CHIP_FILTER = 'all';
+    AUD_PAGE_LIMIT = 80;
+    $('mobAudSearchInp').value = '';
+    $('mobAudTasksView').style.display = 'none';
+    $('mobAudCountView').style.display = 'block';
+    $('mobAudLocHeading').textContent = `🏢 ${t.locationLabel}`;
+    renderMobileAuditItems();
+  }
+
+  function renderMobileAuditItems() {
+    if (!ACTIVE_AUD_TASK) return;
+    const t = ACTIVE_AUD_TASK;
+    const taskCounts = AUD_COUNTS.filter((c) => c.taskId === t.taskId);
+    const countedByItemKey = {};
+    taskCounts.forEach((c) => {
+      countedByItemKey[c.itemKey] = (countedByItemKey[c.itemKey] || 0) + Number(c.totalBaseQty || 0);
+    });
+    const countedSkuCnt = Object.keys(countedByItemKey).length;
+    const totalPcs = taskCounts.reduce((s, c) => s + Number(c.totalBaseQty || 0), 0);
+
+    $('mobAudTaskSubMeta').textContent = `${t.companyName} · ${countedSkuCnt} SKUs found · ${totalPcs} total pcs`;
+    $('mobAudChipCounted').textContent = countedSkuCnt;
+
+    const q = $('mobAudSearchInp').value.toLowerCase().trim();
+    const terms = q ? q.split(/\s+/) : [];
+    const mfgScope = String(t.mfgCode || 'ALL').toUpperCase();
+
+    const matched = AUD_ITEMS.filter((it) => {
+      if (mfgScope !== 'ALL' && String(it.mfgCode || '').toUpperCase() !== mfgScope) return false;
+      if (AUD_CHIP_FILTER === 'counted' && !countedByItemKey[it.itemKey]) return false;
+      if (AUD_CHIP_FILTER === 'manual' && it.conversionStatus !== 'Manual Entry Required') return false;
+      for (let i = 0; i < terms.length; i++) {
+        if (!it._search.includes(terms[i])) return false;
+      }
+      return true;
+    });
+
+    const slice = matched.slice(0, AUD_PAGE_LIMIT);
+    $('mobAudResultMeta').textContent = `Showing ${slice.length} of ${matched.length} SKUs (enter only items physically found)`;
+
+    const html = slice.map((it) => {
+      const cntQty = countedByItemKey[it.itemKey] || 0;
+      const isMan = it.conversionStatus === 'Manual Entry Required';
+      return `<li class="item-card ${cntQty > 0 ? 'in-cart' : ''}" data-aud-item="${encodeURIComponent(it.itemKey)}">
+        <div class="item-main">
+          <div class="item-name">${escapeHtml(it.itemName)}</div>
+          <div class="item-meta-row">
+            <span class="mfg-pill">${escapeHtml(it.companyName)}</span>
+            <span class="mono">${escapeHtml(it.barcode || 'No Barcode')}</span>
+          </div>
+          <div class="item-meta-row">
+            <span class="conv-pill ${isMan ? 'conv-ManualEntryRequired' : 'conv-Verified'}">
+              ${isMan ? '⚠️ Unknown Pack' : `1 Bdl = ${it.bundleFactor} ${escapeHtml(it.baseUnit)}`}
+            </span>
+          </div>
+        </div>
+        <div class="item-side">
+          <span class="badge-tag ${cntQty > 0 ? 'tag-cart' : 'tag-count'}">
+            ${cntQty > 0 ? `✓ ${cntQty} ${escapeHtml(it.baseUnit)}` : '+ Count'}
+          </span>
+        </div>
+      </li>`;
+    }).join('');
+
+    const moreBtn = matched.length > slice.length
+      ? `<button type="button" class="btn-more" id="btnMobAudMore">Show 80 more (${matched.length - slice.length} remaining)</button>`
+      : '';
+    $('mobAudItemList').innerHTML = html + moreBtn;
+  }
+
+  function updateAuditModalCalculation() {
+    if (!ACTIVE_AUD_ITEM) return;
+    const bQ = parseFloat($('audInpBundles').value) || 0;
+    const iQ = parseFloat($('audInpInner').value) || 0;
+    const lQ = parseFloat($('audInpLoose').value) || 0;
+    const bF = Number(ACTIVE_AUD_ITEM.bundleFactor) || 1;
+    const iF = Number(ACTIVE_AUD_ITEM.innerFactor) || 1;
+    const unit = ACTIVE_AUD_ITEM.baseUnit || 'PC';
+    const total = Math.round(((bQ * bF) + (iQ * iF) + lQ) * 100) / 100;
+    $('audCalcTotalDisplay').textContent = `${total} ${unit}`;
+    $('audCalcBreakdown').textContent = `(${bQ} × ${bF}) + (${iQ} × ${iF}) + ${lQ} = ${total} ${unit}`;
+  }
+
+  function generateUniqueCountId(shortCode) {
+    const sc = (shortCode || 'CNT').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const rnd = Math.random().toString(36).slice(2, 7).toUpperCase();
+    return `CNT-${sc}-${Date.now()}-${rnd}`;
+  }
+
+  async function renderMobileSupervisorVerify() {
+    $('mobAudSupVerifyContainer').innerHTML = '<div class="empty-state">Loading pending counts…</div>';
+    if (!navigator.onLine) {
+      $('mobAudSupVerifyContainer').innerHTML = '<div class="empty-state">Internet required to fetch team counts for verification.</div>';
+      return;
+    }
+    try {
+      const res = await AnilApi.auditPulse(AUD_SESSION ? AUD_SESSION.sessionId : '');
+      if (!res || !res.ok) {
+        $('mobAudSupVerifyContainer').innerHTML = `<div class="empty-state">${escapeHtml((res && res.message) || 'Error loading verification queue')}</div>`;
+        return;
+      }
+      const pending = (res.counts || []).filter((c) => c.status === 'Pending Verification');
+      if ($('mobAudSupPendCnt')) $('mobAudSupPendCnt').textContent = pending.length;
+      if (!pending.length) {
+        $('mobAudSupVerifyContainer').innerHTML = '<div class="empty-state">✅ All submitted counts are verified!</div>';
+        return;
+      }
+      $('mobAudSupVerifyContainer').innerHTML = pending.slice(0, 60).map((c) => `
+        <div class="order-card pending">
+          <div class="order-card-header">
+            <div>
+              <div class="party-name">${escapeHtml(c.itemName)} <span class="wf-badge wf-New">${escapeHtml(c.location)}</span></div>
+              <div class="order-sub">${escapeHtml(c.companyName)} · Round ${c.countRound} · 👷 ${escapeHtml(c.countedBy)}</div>
+            </div>
+            <div style="font-size:17px;font-weight:800;color:var(--brand-green-dark)">${c.totalBaseQty}</div>
+          </div>
+          <div class="order-card-body" style="padding:8px 14px;font-size:13px">
+            Bundles: <b>${c.bundlesQty}</b> (×${c.bundleFactor}) · Inner: <b>${c.innerPacksQty}</b> (×${c.innerFactor}) · Loose: <b>${c.looseQty}</b>
+          </div>
+          <div class="order-card-footer">
+            <button type="button" class="btn-sm btn-green" style="min-height:36px;padding:6px 12px" data-msup-act="Approved" data-msup-cid="${escapeHtml(c.countId)}">✅ Approve</button>
+            <button type="button" class="btn-sm btn-amber" style="min-height:36px;padding:6px 12px" data-msup-act="Recount Assigned" data-msup-cid="${escapeHtml(c.countId)}">🔄 Recount</button>
+          </div>
+        </div>`).join('');
+    } catch (e) {
+      $('mobAudSupVerifyContainer').innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`;
+    }
+  }
+
+  function bindMobileAuditEvents() {
+    $('btnMobAudDownload').onclick = () => downloadMobileAuditPackage(false);
+    $('btnMobAudSyncNow').onclick = () => syncMobileAuditCounts(false);
+
+    $('mobAudSupSubtabs').onclick = (e) => {
+      const chip = e.target.closest('[data-maudsub]');
+      if (!chip) return;
+      $('mobAudSupSubtabs').querySelectorAll('.chip').forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+      const mode = chip.dataset.maudsub;
+      if (mode === 'supverify') {
+        $('mobAudTasksView').style.display = 'none';
+        $('mobAudCountView').style.display = 'none';
+        $('mobAudSupVerifyView').style.display = 'block';
+        renderMobileSupervisorVerify();
+      } else {
+        $('mobAudSupVerifyView').style.display = 'none';
+        renderMobileAuditTasks();
+      }
+    };
+
+    $('mobAudSupVerifyContainer').onclick = async (e) => {
+      const btn = e.target.closest('[data-msup-act]');
+      if (!btn) return;
+      const cid = btn.dataset.msupCid;
+      const act = btn.dataset.msupAct;
+      const reason = act === 'Recount Assigned' ? (prompt('Reason for recount:', 'Please recount physical stock') || '') : 'Approved on floor';
+      if (act === 'Recount Assigned' && !reason) return;
+      btn.disabled = true;
+      const res = await AnilApi.auditVerifyCount({ countIds: [cid], verifyAction: act, reason });
+      if (!res.ok) { toast(res.message, true); btn.disabled = false; return; }
+      toast(act === 'Approved' ? '✅ Approved' : '🔄 Recount assigned');
+      renderMobileSupervisorVerify();
+    };
+
+    $('mobAudTasksContainer').onclick = (e) => {
+      const card = e.target.closest('[data-open-audtask]');
+      if (card) openMobileAuditTask(card.dataset.openAudtask);
+    };
+
+    $('btnMobAudBackTasks').onclick = () => {
+      ACTIVE_AUD_TASK = null;
+      renderMobileAuditTasks();
+    };
+
+    $('btnMobAudSubmitTask').onclick = async () => {
+      if (!ACTIVE_AUD_TASK) return;
+      if (!confirm(`Mark ${ACTIVE_AUD_TASK.locationLabel} counting as Submitted for Supervisor Verification?`)) return;
+      ACTIVE_AUD_TASK.status = 'Submitted';
+      await AnilDB.putOne('auditTasks', ACTIVE_AUD_TASK);
+      await syncMobileAuditCounts(true);
+      if (navigator.onLine) {
+        try { await AnilApi.auditTaskStatus(ACTIVE_AUD_TASK.taskId, 'Submitted'); } catch (e) {}
+      }
+      toast('✅ Location task submitted!');
+      ACTIVE_AUD_TASK = null;
+      renderMobileAuditTasks();
+    };
+
+    let audSearchT = null;
+    $('mobAudSearchInp').oninput = () => {
+      clearTimeout(audSearchT);
+      audSearchT = setTimeout(() => { AUD_PAGE_LIMIT = 80; renderMobileAuditItems(); }, 100);
+    };
+
+    $('mobAudChips').onclick = (e) => {
+      const b = e.target.closest('[data-audchip]');
+      if (!b) return;
+      $('mobAudChips').querySelectorAll('.chip').forEach((c) => c.classList.remove('active'));
+      b.classList.add('active');
+      AUD_CHIP_FILTER = b.dataset.audchip;
+      AUD_PAGE_LIMIT = 80;
+      renderMobileAuditItems();
+    };
+
+    $('mobAudItemList').onclick = (e) => {
+      if (e.target.id === 'btnMobAudMore') {
+        AUD_PAGE_LIMIT += 80;
+        renderMobileAuditItems();
+        return;
+      }
+      const card = e.target.closest('[data-aud-item]');
+      if (!card || !ACTIVE_AUD_TASK) return;
+      const key = decodeURIComponent(card.dataset.audItem);
+      const it = AUD_ITEMS.find((x) => x.itemKey === key);
+      if (!it) return;
+      ACTIVE_AUD_ITEM = it;
+
+      $('audCntItemName').textContent = it.itemName;
+      $('audCntLocBadge').textContent = ACTIVE_AUD_TASK.locationLabel;
+      $('audCntMfg').textContent = it.companyName;
+      $('audCntBarcode').textContent = it.barcode || 'No Barcode';
+      const isMan = it.conversionStatus === 'Manual Entry Required';
+      $('audCntConvBadge').textContent = it.conversionStatus;
+      $('audCntConvBadge').className = 'conv-pill ' + (isMan ? 'conv-ManualEntryRequired' : 'conv-Verified');
+      $('audCntConvRule').textContent = `1 Bundle = ${it.bundleFactor} ${it.baseUnit} · 1 Inner Pack = ${it.innerFactor} ${it.baseUnit}`;
+
+      $('audInpBundles').value = '';
+      $('audInpInner').value = '';
+      $('audInpLoose').value = '';
+      $('audInpRemarks').value = '';
+      updateAuditModalCalculation();
+      $('audCountModal').classList.add('open');
+      setTimeout(() => $('audInpBundles').focus(), 70);
+    };
+
+    ['audInpBundles', 'audInpInner', 'audInpLoose'].forEach((id) => {
+      $(id).oninput = updateAuditModalCalculation;
+    });
+    document.querySelectorAll('[data-aud-step]').forEach((b) => {
+      b.onclick = () => {
+        const [field, deltaStr] = b.dataset.audStep.split(':');
+        const inp = field === 'bundles' ? $('audInpBundles') : (field === 'inner' ? $('audInpInner') : $('audInpLoose'));
+        const cur = parseFloat(inp.value) || 0;
+        inp.value = Math.max(0, cur + Number(deltaStr));
+        updateAuditModalCalculation();
+      };
+    });
+
+    $('btnSaveAudCount').onclick = async () => {
+      if (!ACTIVE_AUD_TASK || !ACTIVE_AUD_ITEM) return;
+      const bQ = parseFloat($('audInpBundles').value) || 0;
+      const iQ = parseFloat($('audInpInner').value) || 0;
+      const lQ = parseFloat($('audInpLoose').value) || 0;
+      const bF = Number(ACTIVE_AUD_ITEM.bundleFactor) || 1;
+      const iF = Number(ACTIVE_AUD_ITEM.innerFactor) || 1;
+      const totalBase = Math.round(((bQ * bF) + (iQ * iF) + lQ) * 100) / 100;
+      if (totalBase <= 0) {
+        toast('Enter at least 1 Bundle, Inner Pack, or Loose Piece.', true);
+        return;
+      }
+
+      const u = AnilApi.getConfig().user || { name: 'Counter', userId: '', shortCode: 'CNT' };
+      const rec = {
+        countId: generateUniqueCountId(u.shortCode),
+        sessionId: ACTIVE_AUD_TASK.sessionId,
+        taskId: ACTIVE_AUD_TASK.taskId,
+        location: ACTIVE_AUD_TASK.location,
+        itemKey: ACTIVE_AUD_ITEM.itemKey,
+        itemName: ACTIVE_AUD_ITEM.itemName,
+        mfgCode: ACTIVE_AUD_ITEM.mfgCode,
+        companyName: ACTIVE_AUD_ITEM.companyName,
+        barcode: ACTIVE_AUD_ITEM.barcode || '',
+        bundlesQty: bQ,
+        innerPacksQty: iQ,
+        looseQty: lQ,
+        bundleFactor: bF,
+        innerFactor: iF,
+        totalBaseQty: totalBase,
+        conversionStatus: ACTIVE_AUD_ITEM.conversionStatus,
+        countRound: ACTIVE_AUD_TASK.status === 'Recount Required' ? 2 : 1,
+        status: 'Pending Verification',
+        countedBy: u.name,
+        countedByUserId: u.userId,
+        countedAt: new Date().toISOString(),
+        remarks: $('audInpRemarks').value.trim(),
+        isUnlisted: false,
+        syncState: 'pending'
+      };
+
+      AUD_COUNTS.unshift(rec);
+      await AnilDB.putOne('auditCounts', rec);
+      $('audCountModal').classList.remove('open');
+      updateMobileAuditStatsUI();
+      renderMobileAuditItems();
+      toast(`💾 Saved ${totalBase} ${ACTIVE_AUD_ITEM.baseUnit} on phone ✓`);
+      syncMobileAuditCounts(true);
+    };
+
+    $('btnMobAudOpenUnlisted').onclick = () => {
+      if (!ACTIVE_AUD_TASK) return;
+      $('audUnlLocLabel').textContent = ACTIVE_AUD_TASK.locationLabel;
+      $('audUnlName').value = '';
+      $('audUnlMfg').value = ACTIVE_AUD_TASK.mfgCode !== 'ALL' ? ACTIVE_AUD_TASK.mfgCode : '';
+      $('audUnlBarcode').value = '';
+      $('audUnlQty').value = '';
+      $('audUnlRemarks').value = '';
+      $('audUnlistedModal').classList.add('open');
+    };
+
+    $('btnSaveAudUnlisted').onclick = async () => {
+      if (!ACTIVE_AUD_TASK) return;
+      const itemName = $('audUnlName').value.trim();
+      const qty = parseFloat($('audUnlQty').value) || 0;
+      if (!itemName || qty <= 0) {
+        toast('Enter Item Name and Physical Quantity > 0.', true);
+        return;
+      }
+      const mfg = ($('audUnlMfg').value.trim() || 'UNLISTED').toUpperCase();
+      const bc = $('audUnlBarcode').value.trim();
+      const u = AnilApi.getConfig().user || { name: 'Counter', userId: '', shortCode: 'CNT' };
+      const rec = {
+        countId: generateUniqueCountId(u.shortCode),
+        sessionId: ACTIVE_AUD_TASK.sessionId,
+        taskId: ACTIVE_AUD_TASK.taskId,
+        location: ACTIVE_AUD_TASK.location,
+        itemKey: bc ? ('BC:' + bc + '::' + itemName.toLowerCase()) : ('NM:' + itemName.toLowerCase()),
+        itemName: itemName,
+        mfgCode: mfg,
+        companyName: getMfgDisplay(mfg),
+        barcode: bc,
+        bundlesQty: 0,
+        innerPacksQty: 0,
+        looseQty: qty,
+        bundleFactor: 1,
+        innerFactor: 1,
+        totalBaseQty: qty,
+        conversionStatus: 'Manual Entry Required',
+        countRound: 1,
+        status: 'Pending Verification',
+        countedBy: u.name,
+        countedByUserId: u.userId,
+        countedAt: new Date().toISOString(),
+        remarks: $('audUnlRemarks').value.trim(),
+        isUnlisted: true,
+        syncState: 'pending'
+      };
+
+      AUD_COUNTS.unshift(rec);
+      await AnilDB.putOne('auditCounts', rec);
+      $('audUnlistedModal').classList.remove('open');
+      updateMobileAuditStatsUI();
+      renderMobileAuditItems();
+      toast('💾 Unlisted physical item saved for verification ✓');
+      syncMobileAuditCounts(true);
+    };
+  }
+  bindMobileAuditEvents();
+
     window.addEventListener('online', () => {
       updateClock();
       toast('Back online — syncing…');
       autoSyncAll(true);
+      syncMobileAuditCounts(true);
     });
     window.addEventListener('offline', updateClock);
   }
