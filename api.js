@@ -1,5 +1,5 @@
 /**
- * Anil Plastics API Adapter (v10.1)
+ * Anil Plastics API Adapter (v11.0)
  * Self-healing URL discovery (?url= param, ap_webhook_url, anil_webhook_url) & safe JSON parsing.
  */
 window.AnilApi = (function () {
@@ -122,6 +122,14 @@ window.AnilApi = (function () {
     deleteOrder: (orderId) => post('deleteOrder', { orderId }),
     createCustomTask: (payload) => post('createCustomTask', payload),
     getMfgMaster: () => post('getMfgMaster', {}),
-    uploadStockAudit: (items) => post('uploadStockAudit', { items: items || [] })
+    uploadStockAudit: (items) => post('uploadStockAudit', { items: items || [] }),
+    // Physical Inventory Audit Module Endpoints (Ver 11.0)
+    auditMyPackage: (sessionId) => post('auditMyPackage', { sessionId: sessionId || '' }),
+    auditSyncCounts: (sessionId, deviceBatchID, counts) => post('auditSyncCounts', { sessionId: sessionId || '', deviceBatchID, counts: counts || [] }),
+    auditTaskStatus: (taskId, status) => post('auditTaskStatus', { taskId, status }),
+    auditPulse: (sessionId) => post('auditPulse', { sessionId: sessionId || '' }),
+    auditVerifyCount: (payload) => post('auditVerifyCount', payload),
+    auditSaveConversion: (payload) => post('auditSaveConversion', payload),
+    auditResolveException: (exceptionId, resolutionNote) => post('auditResolveException', { exceptionId, resolutionNote })
   };
 })();
