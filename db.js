@@ -1,13 +1,13 @@
 /**
- * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v10.1
+ * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v11.0
  * Guarantees instant, non-hanging startup on Android Chrome, WebViews, file://, content://, and HTTPS.
  */
 window.AnilDB = (function () {
   const DB_NAME = 'AnilPlasticsDB_v8';
-  const DB_VER = 1;
+  const DB_VER = 2;
   let dbPromise = null;
   let idbDisabled = false;
-  const MEM_FALLBACK = { items: [], orders: [], tasks: [], taskQueue: [], pdfs: [], meta: [] };
+  const MEM_FALLBACK = { items: [], orders: [], tasks: [], taskQueue: [], pdfs: [], meta: [], auditTasks: [], auditItems: [], auditCounts: [] };
 
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
@@ -48,7 +48,9 @@ window.AnilDB = (function () {
   }
 
   function keyFieldOf(store) {
-    if (store === 'items') return '_key';
+    if (store === 'items' || store === 'auditItems') return '_key';
+    if (store === 'auditTasks') return 'taskId';
+    if (store === 'auditCounts') return 'countId';
     if (store === 'orders' || store === 'pdfs') return 'id';
     if (store === 'tasks') return 'orderId';
     if (store === 'taskQueue') return 'qid';
@@ -80,6 +82,9 @@ window.AnilDB = (function () {
           if (!db.objectStoreNames.contains('taskQueue')) db.createObjectStore('taskQueue', { keyPath: 'qid', autoIncrement: true });
           if (!db.objectStoreNames.contains('pdfs')) db.createObjectStore('pdfs', { keyPath: 'id' });
           if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', { keyPath: 'k' });
+          if (!db.objectStoreNames.contains('auditTasks')) db.createObjectStore('auditTasks', { keyPath: 'taskId' });
+          if (!db.objectStoreNames.contains('auditItems')) db.createObjectStore('auditItems', { keyPath: '_key' });
+          if (!db.objectStoreNames.contains('auditCounts')) db.createObjectStore('auditCounts', { keyPath: 'countId' });
         };
         req.onsuccess = () => {
           if (!settled) {
@@ -185,7 +190,7 @@ window.AnilDB = (function () {
   }
 
   async function clearAll() {
-    const stores = ['items', 'orders', 'tasks', 'taskQueue', 'meta'];
+    const stores = ['items', 'orders', 'tasks', 'taskQueue', 'meta', 'auditTasks', 'auditItems', 'auditCounts'];
     stores.forEach((st) => {
       MEM_FALLBACK[st] = [];
       lsDel(lsStoreKey(st));
