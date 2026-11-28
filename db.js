@@ -1,5 +1,5 @@
 /**
- * Anil Plastics Hybrid Storage Engine (IndexedDB + Compact localStorage Fallback) v12.0
+ * Anil Plastics Hybrid Storage Engine (IndexedDB + Compact localStorage Fallback) v13.0
  * - 5000ms IndexedDB startup tolerance for budget Android devices with 15,000+ SKUs
  * - Compact tuple serialization if localStorage fallback is ever triggered
  * - Built-in storage health & diagnostics reporter

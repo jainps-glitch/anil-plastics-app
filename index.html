@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Anil Plastics">
-<title>Anil Plastics - Order &amp; Tasks (Ver 12.0)</title>
+<title>Anil Plastics - Order &amp; Tasks (Ver 13.0)</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -411,7 +411,7 @@
   }
   .company-scope-banner.show { display: block; }
 
-  /* Mobile Physical Inventory Audit Module CSS (Ver 12.0) */
+  /* Mobile Physical Inventory Audit Module CSS (Ver 13.0) */
   .aud-sync-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 8px 0; }
   .aud-sync-box { background: #fff; border: 1.5px solid var(--line); border-radius: 9px; padding: 7px 6px; text-align: center; }
   .aud-sync-box b { display: block; font-size: 16px; font-weight: 800; color: var(--brand-green-dark); }
@@ -461,7 +461,7 @@
 <div class="app-top">
   <div class="brand-header">
     <div class="brand-title-row">
-      <div class="brand-wordmark">ANIL PLASTICS <span class="brand-badge">Ver 12.0</span></div>
+      <div class="brand-wordmark">ANIL PLASTICS <span class="brand-badge">Ver 13.0</span></div>
       <button class="btn-upload-header" id="btnTopSyncStock">🔄 Stock</button>
     </div>
     <div class="salesman-bar">
@@ -940,6 +940,10 @@
       <button class="btn-sm btn-light" id="btnRestore">📂 Restore JSON</button>
     </div>
     <button class="btn-sm btn-blue btn-wide" style="margin-top:10px;display:none" id="btnInstallApp">📲 Install App on Home Screen</button>
+    <div class="grid-2" style="margin-top:10px">
+      <button class="btn-sm btn-light" id="btnToggleMobSound">🔔 Task Sound: ON</button>
+      <button class="btn-sm btn-light" id="btnTestMobSound">🔊 Test Alert Chime</button>
+    </div>
     <button class="btn-sm btn-light btn-wide" style="margin-top:10px" id="btnRunMobDiagnostics">🩺 Run System &amp; Storage Diagnostics</button>
     <div id="mobDiagOutput" style="display:none;margin-top:10px;padding:10px;background:#f4faf7;border:1.5px solid #a8d0ba;border-radius:10px;font-size:12.5px;line-height:1.55"></div>
     <div class="danger-zone" style="margin-top:14px">
@@ -947,7 +951,7 @@
       <button class="btn-sm btn-danger-soft btn-wide" id="btnReset">🗑️ Clear All Phone Data</button>
     </div>
   </div>
-  <div class="app-footer">Anil Plastics Workflow System · Ver 12.0 PWA</div>
+  <div class="app-footer">Anil Plastics Workflow System · Ver 13.0 PWA</div>
 </section>
 
 <input type="file" id="fileInput" class="hidden-input" accept=".xlsx,.xls,.csv">
@@ -1183,7 +1187,7 @@
 
 <script>
 /**
- * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v12.0
+ * Anil Plastics Hybrid Storage Engine (IndexedDB + Automatic localStorage Fallback) v13.0
  * Guarantees instant, non-hanging startup on Android Chrome, WebViews, file://, content://, and HTTPS.
  */
 window.AnilDB = (function () {
@@ -1606,13 +1610,14 @@ window.AnilApi = (function () {
     reassign: (orderId, assignedTo, assignedName, priority, dueTime) =>
       post('reassign', { orderId, assignedTo, assignedName, priority, dueTime }),
     setStatus: (ids, status, extra) => post('setStatus', Object.assign({ ids, status }, extra || {})),
+    directBillOrder: (payload) => post('directBillOrder', payload),
     updateDispatchNote: (orderId, transportNote) => post('updateDispatchNote', { orderId, transportNote }),
     cancelOrder: (orderId, reason) => post('cancelOrder', { orderId, reason }),
     deleteOrder: (orderId) => post('deleteOrder', { orderId }),
     createCustomTask: (payload) => post('createCustomTask', payload),
     getMfgMaster: () => post('getMfgMaster', {}),
     uploadStockAudit: (items) => post('uploadStockAudit', { items: items || [] }),
-    // Physical Inventory Audit Module Endpoints (Ver 12.0)
+    // Physical Inventory Audit Module Endpoints (Ver 13.0)
     auditMyPackage: (sessionId) => post('auditMyPackage', { sessionId: sessionId || '' }),
     auditSyncCounts: (sessionId, deviceBatchID, counts) => post('auditSyncCounts', { sessionId: sessionId || '', deviceBatchID, counts: counts || [] }),
     auditTaskStatus: (taskId, status) => post('auditTaskStatus', { taskId, status }),
@@ -1632,6 +1637,71 @@ window.AnilApi = (function () {
   let ITEMS = [];
   let ORDERS = [];
   let TASKS = [];
+  let MOB_SOUND_ENABLED = localStorage.getItem('ap_mob_sound') !== '0';
+
+  // Zero-dependency Offline Web Audio + Vibration Task Alert Engine
+  const APTaskSound = (function () {
+    let ctx = null;
+    function getCtx() {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      if (!ctx) ctx = new AC();
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      return ctx;
+    }
+    function unlock() { try { getCtx(); } catch (e) {} }
+    window.addEventListener('pointerdown', unlock, { passive: true });
+    window.addEventListener('keydown', unlock, { passive: true });
+
+    function playTaskAlert() {
+      try { if (navigator.vibrate) navigator.vibrate([220, 100, 220]); } catch (e) {}
+      if (!MOB_SOUND_ENABLED) return;
+      try {
+        const c = getCtx();
+        if (!c) return;
+        [659.25, 880.0, 1046.5].forEach((freq, idx) => {
+          const osc = c.createOscillator();
+          const gain = c.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          const t0 = c.currentTime + idx * 0.13;
+          gain.gain.setValueAtTime(0.001, t0);
+          gain.gain.exponentialRampToValueAtTime(0.28, t0 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.32);
+          osc.connect(gain);
+          gain.connect(c.destination);
+          osc.start(t0);
+          osc.stop(t0 + 0.34);
+        });
+      } catch (e) {}
+    }
+    return { playTaskAlert };
+  })();
+
+  function checkAndAlertNewTasks(taskList, labelPrefix) {
+    const u = AnilApi.getConfig().user;
+    if (!u || !u.userId) return;
+    const storeKey = 'ap_seen_tasks_' + u.userId;
+    let seenRaw = null;
+    try { seenRaw = localStorage.getItem(storeKey); } catch (e) {}
+    const currentIds = (taskList || []).map((t) => String(t.taskId || t.orderId || '')).filter(Boolean);
+    if (seenRaw === null) {
+      try { localStorage.setItem(storeKey, JSON.stringify(currentIds)); } catch (e) {}
+      return;
+    }
+    let seenSet = new Set();
+    try { seenSet = new Set(JSON.parse(seenRaw) || []); } catch (e) {}
+    const newlyArrived = (taskList || []).filter((t) => {
+      const id = String(t.taskId || t.orderId || '');
+      return id && !seenSet.has(id);
+    });
+    try { localStorage.setItem(storeKey, JSON.stringify(currentIds)); } catch (e) {}
+    if (newlyArrived.length > 0) {
+      APTaskSound.playTaskAlert();
+      const first = newlyArrived[0];
+      toast(`🔔 ${labelPrefix || 'New Task'}: ${first.title || first.partyName || first.locationLabel || first.taskId}`);
+    }
+  }
   let PARTIES = [];
   let MFG_MAP = JSON.parse(localStorage.getItem('ap_mfg_map') || '{}');
 
@@ -2353,6 +2423,7 @@ window.AnilApi = (function () {
           const completedLocally = new Set(qAfter.filter((x) => x.type === 'taskComplete').map((x) => x.taskId || x.orderId));
           TASKS = (res.tasks || []).filter((t) => !completedLocally.has(t.taskId) && !completedLocally.has(t.orderId));
           await AnilDB.putMany('tasks', TASKS, true);
+          checkAndAlertNewTasks(TASKS, 'New Task Assigned');
         }
       } catch (e) {}
     }
@@ -2917,7 +2988,8 @@ window.AnilApi = (function () {
             <option value="Urgent">Urgent</option>
           </select>
         </div>
-        <button class="btn-wide btn-green" id="btnOwnExecRelease">▶ Release Now</button>`;
+        <button class="btn-wide btn-green" id="btnOwnExecRelease">▶ Release Now</button>
+        <button class="btn-wide" style="background:var(--purple);color:#fff;margin-top:8px" id="btnOwnExecDirectBill">⚡ Direct Bill (Skip Picking)</button>`;
     } else if (o.status === 'Released' || o.status === 'In Progress') {
       actionHtml = `
         <div style="font-size:13px;font-weight:800;color:#0369a1;margin-bottom:6px">🔄 Reassign Picker</div>
@@ -3132,6 +3204,15 @@ window.AnilApi = (function () {
       if (!ACTIVE_OWNER_ORDER) return;
       const oid = ACTIVE_OWNER_ORDER.id;
       const id = e.target.id;
+      if (id === 'btnOwnExecDirectBill') {
+        const inv = prompt('Optional Saifee Invoice No (or leave blank):', '') || '';
+        const res = await AnilApi.directBillOrder({ orderId: oid, invoiceNo: inv });
+        if (!res.ok) { toast(res.message, true); return; }
+        toast(`⚡ ${oid} directly billed!`);
+        $('ownerOrderModal').classList.remove('open');
+        loadOwnerMobileDashboard(true);
+        return;
+      }
       if (id === 'btnOwnExecRelease' || id === 'btnOwnExecReassign') {
         const sel = $('ownRelStaff');
         const empId = sel.value;
@@ -3626,6 +3707,29 @@ window.AnilApi = (function () {
       toast('Server URL saved ✓');
     };
     $('btnLogout').onclick = () => performPhoneLogout(false);
+    function updateMobSoundBtn() {
+      if ($('btnToggleMobSound')) {
+        $('btnToggleMobSound').textContent = MOB_SOUND_ENABLED ? '🔔 Task Sound: ON' : '🔕 Task Sound: OFF';
+      }
+    }
+    updateMobSoundBtn();
+    if ($('btnToggleMobSound')) {
+      $('btnToggleMobSound').onclick = () => {
+        MOB_SOUND_ENABLED = !MOB_SOUND_ENABLED;
+        localStorage.setItem('ap_mob_sound', MOB_SOUND_ENABLED ? '1' : '0');
+        updateMobSoundBtn();
+        if (MOB_SOUND_ENABLED) APTaskSound.playTaskAlert();
+      };
+    }
+    if ($('btnTestMobSound')) {
+      $('btnTestMobSound').onclick = () => {
+        MOB_SOUND_ENABLED = true;
+        localStorage.setItem('ap_mob_sound', '1');
+        updateMobSoundBtn();
+        APTaskSound.playTaskAlert();
+        toast('🔊 Task alert chime & vibration tested');
+      };
+    }
     $('btnRunMobDiagnostics').onclick = async () => {
       const box = $('mobDiagOutput');
       box.style.display = 'block';
@@ -3812,6 +3916,7 @@ window.AnilApi = (function () {
       AUD_SESSION = res.session || null;
       localStorage.setItem('ap_aud_session', JSON.stringify(AUD_SESSION));
       AUD_TASKS = res.tasks || [];
+      checkAndAlertNewTasks(AUD_TASKS.map((t) => ({ taskId: 'AUD-' + t.taskId + '-' + t.status, title: t.locationLabel + ' (' + t.status + ')' })), 'Audit Task');
       AUD_ITEMS = (res.items || []).map((it) => Object.assign({}, it, {
         _key: it.itemKey,
         _search: `${it.itemName} ${it.mfgCode} ${it.companyName} ${it.barcode}`.toLowerCase()
@@ -4427,6 +4532,22 @@ window.AnilApi = (function () {
   }
 
   boot();
+  setInterval(() => {
+    if (navigator.onLine && AnilApi.getConfig().token && !document.hidden) {
+      AnilApi.myTasks().then(async (res) => {
+        if (res && res.ok) {
+          const qAfter = await AnilDB.getAll('taskQueue');
+          const completedLocally = new Set(qAfter.filter((x) => x.type === 'taskComplete').map((x) => x.taskId || x.orderId));
+          TASKS = (res.tasks || []).filter((t) => !completedLocally.has(t.taskId) && !completedLocally.has(t.orderId));
+          await AnilDB.putMany('tasks', TASKS, true);
+          $('myTasksBadge').textContent = TASKS.length;
+          $('empTasksBadge').textContent = TASKS.length;
+          checkAndAlertNewTasks(TASKS, 'New Task Assigned');
+          if ($('tabTasks').classList.contains('active') && !ACTIVE_TASK) renderTasksList();
+        }
+      }).catch(() => {});
+    }
+  }, 45000);
 })();
 </script>
 </body>
